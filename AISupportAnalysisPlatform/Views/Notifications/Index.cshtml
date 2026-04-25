@@ -1,0 +1,90 @@
+@model IEnumerable<AISupportAnalysisPlatform.Models.Notification>
+
+@{
+    ViewData["Title"] = "System Intelligence Alerts";
+}
+
+<div class="row">
+    <div class="col-xl-8 col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Alert Hub</h2>
+                <p class="text-muted small mb-0">Track real-time system events and case assignments</p>
+            </div>
+            <div class="col-auto">
+                <span class="badge bg-light text-muted fw-normal">@Model.Count(n => !n.IsRead) Unread Alerts</span>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm overflow-hidden">
+            <div class="list-group list-group-flush">
+                @if (Model.Any())
+                {
+                    @foreach (var notif in Model)
+                    {
+                        <div class="list-group-item p-4 border-light @(!notif.IsRead ? "bg-primary-subtle border-start border-4 border-primary" : "bg-white")" id="notif-@notif.Id" style="cursor: pointer;" onclick="handleAlertClick(event, @notif.Id, '@notif.Link', @notif.IsRead.ToString().ToLower())">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-shape @(!notif.IsRead ? "bg-primary text-white" : "bg-light text-muted") rounded-circle me-3 shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="bi @(notif.Title.Contains("Assignment") ? "bi-person-plus-fill" : "bi-journal-check")"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">@notif.Title</h6>
+                                        <span class="text-muted" style="font-size: 0.7rem;">@notif.CreatedAt.ToString("MMM dd, HH:mm")</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    @if (!string.IsNullOrEmpty(notif.Link))
+                                    {
+                                        <span class="badge bg-light text-primary border"><i class="bi bi-box-arrow-up-right me-1"></i>View Trace</span>
+                                    }
+                                </div>
+                            </div>
+                            <p class="text-muted mb-0 small">@notif.Message</p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-bell-slash fs-1 opacity-25 d-block mb-3"></i>
+                        <p class="text-muted">No system alerts present at this time.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function handleAlertClick(e, id, link, isRead) {
+            e.preventDefault();
+
+            if (isRead && link) {
+                window.location.href = link;
+                return;
+            }
+
+            if (!isRead) {
+                $.post('/Notifications/MarkAsRead/' + id, function () {
+                    if (link) {
+                        window.location.href = link;
+                    } else {
+                        $('#notif-' + id).removeClass('bg-primary-subtle border-start border-4 border-primary').addClass('bg-white');
+                        $('#notif-' + id + ' .icon-shape').removeClass('bg-primary text-white').addClass('bg-light text-muted');
+
+                        let badge = $('.badge.rounded-pill.bg-danger');
+                        if (badge.length) {
+                            let count = parseInt(badge.text()) - 1;
+                            if (count <= 0) badge.remove();
+                            else badge.text(count);
+                        }
+                    }
+                }).fail(function() {
+                    if (link) window.location.href = link;
+                });
+            }
+        }
+    </script>
+}

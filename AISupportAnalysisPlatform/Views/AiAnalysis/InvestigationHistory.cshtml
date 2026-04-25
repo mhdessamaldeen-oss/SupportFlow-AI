@@ -1,0 +1,254 @@
+@model List<AISupportAnalysisPlatform.Models.AI.CopilotTraceHistory>
+@{
+    ViewData["Title"] = "Reasoning Investigation Archive";
+}
+
+<div class="investigation-page-shell">
+    <div class="ai-header-shell px-0 animate__animated animate__fadeIn d-flex flex-column flex-md-row justify-content-between align-items-md-center border-bottom" style="border-bottom-color: var(--border-color) !important;">
+        <div class="d-flex align-items-center gap-3">
+            <div class="ai-icon-box shadow-sm position-relative overflow-hidden">
+                <i class="bi bi-shield-lock-fill text-primary" style="position: relative; z-index: 2;"></i>
+            </div>
+            <div>
+                <nav aria-label="breadcrumb" class="mb-0">
+                    <ol class="breadcrumb mb-0 p-0 bg-transparent" style="font-size: 0.7rem; letter-spacing: 0.03em; font-weight: 700; text-transform: uppercase;">
+                        <li class="breadcrumb-item"><a asp-controller="AiAnalysis" asp-action="Hub" class="text-muted text-decoration-none hover-primary">@Loc.Get("AnalysisHub")</a></li>
+                        <li class="breadcrumb-item active text-primary" aria-current="page">@Loc.Get("InvestigationArchive")</li>
+                    </ol>
+                </nav>
+                <p class="mb-0 text-main fw-bold" style="font-size: 0.95rem; line-height: 1.2;">@Loc.Get("ForensicArchiveCatalog")</p>
+            </div>
+        </div>
+        <div class="d-flex gap-3 align-items-center flex-shrink-0">
+            <div class="px-4 py-2 rounded-pill d-flex align-items-center gap-2 shadow-sm transition-all hover-shadow-lg d-none d-lg-flex" style="background: var(--bg-card); border: 1px solid var(--border-color); cursor: default;">
+                <div class="d-flex p-1 rounded-circle bg-primary bg-opacity-10 me-1">
+                    <i class="bi bi-server text-primary" style="font-size: 0.75rem;"></i>
+                </div>
+                <div class="d-flex flex-column justify-content-center" style="line-height: 1.1;">
+                    <span class="text-uppercase fw-bold text-muted" style="font-size: 0.55rem; letter-spacing: 0.1em;">@Loc.Get("VaultCapacity")</span>
+                    <span class="fw-black text-main mt-1" style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">@Model.Count <span class="text-muted fw-bold ms-1" style="font-family: 'Inter', sans-serif; font-size: 0.65rem;">@Loc.Get("Samples")</span></span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="@Url.Action("Copilot", "AiAnalysis")" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                    <i class="bi bi-chat-dots @(Loc.IsRtl ? "ms-1" : "me-1")"></i> @Loc.Get("BackToChat")
+                </a>
+                <a href="@Url.Action("Hub", "AiAnalysis")" class="btn btn-soft-secondary btn-sm rounded-pill px-4 fw-bold">
+                    <i class="bi bi-grid @(Loc.IsRtl ? "ms-1" : "me-1")"></i> @Loc.Get("Hub")
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div id="archiveMainView" class="animate__animated animate__fadeIn">
+        @if (TempData["Success"] is string successMessage)
+        {
+            <div class="alert alert-success border-0 rounded-4 shadow-sm fw-bold d-flex align-items-center gap-2 mb-4">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>@successMessage</span>
+            </div>
+        }
+        @if (TempData["Error"] is string errorMessage)
+        {
+            <div class="alert alert-warning border-0 rounded-4 shadow-sm fw-bold d-flex align-items-center gap-2 mb-4">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>@errorMessage</span>
+            </div>
+        }
+
+        <form asp-action="DeleteInvestigationHistory" asp-controller="AiAnalysis" method="post" id="investigationDeleteForm">
+            @Html.AntiForgeryToken()
+        <div class="glass-card position-relative overflow-hidden mb-5 border-1 shadow-lg" style="background: var(--bg-card);">
+            <!-- High-Tech Background Glow & Grid -->
+            <div style="position: absolute; inset: 0; background-image: radial-gradient(rgba(var(--primary-color-rgb), 0.1) 1px, transparent 1px); background-size: 24px 24px; opacity: 0.3; pointer-events: none;"></div>
+            <div style="position: absolute; top: -100px; inset-inline-end: -100px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(var(--primary-color-rgb), 0.15) 0%, transparent 70%); border-radius: 50%; filter: blur(40px); pointer-events: none;"></div>
+            
+            <!-- Premium Search Header -->
+            <div class="glass-header d-flex flex-column flex-md-row justify-content-between align-items-md-center position-relative z-1 py-4 px-4 bg-dark bg-opacity-25 border-bottom border-light border-opacity-10">
+                <div class="d-flex align-items-center mb-3 mb-md-0">
+                    <div class="input-group rounded-pill px-3 py-2 border border-secondary border-opacity-25 hover-border-primary transition-all shadow-sm focus-ring-glow" style="width: 350px; background: var(--bg-card); backdrop-filter: blur(10px);">
+                        <i class="bi bi-search text-primary mt-1 me-2" style="filter: drop-shadow(0 0 4px rgba(var(--primary-color-rgb), 0.5));"></i>
+                        <input type="text" id="historySearch" class="form-control border-0 bg-transparent shadow-none ps-0 fw-semibold" style="color: var(--text-main);" placeholder="Deep search investigation network..." />
+                    </div>
+                </div>
+                <div class="text-muted small fw-bold text-uppercase d-flex align-items-center gap-2">
+                    <span id="selectedTraceCount" class="history-selection-pill d-none">
+                        0 selected
+                    </span>
+                    <button type="submit" id="deleteSelectedTracesButton" class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3" disabled>
+                        <i class="bi bi-trash3 me-1"></i> Delete selected
+                    </button>
+                    <span class="badge bg-primary bg-opacity-10 border border-primary border-opacity-50 text-info rounded-pill px-3 py-2 shadow-inner fs-7 letter-spacing-1 d-flex align-items-center">
+                        <span class="spinner-grow spinner-grow-sm text-primary me-2 shadow-sm" style="width: 0.5rem; height: 0.5rem;" role="status"></span>
+                        @Model.Count @Loc.Get("InteractionsCatalogued")
+                    </span>
+                </div>
+            </div>
+            
+            <div class="table-responsive position-relative z-1 shadow-inner">
+                <table class="table table-hover align-middle mb-0" id="historyTable" style="color: var(--text-main); --bs-table-hover-bg: rgba(var(--primary-color-rgb), 0.03);">
+                    <thead style="background: rgba(0,0,0,0.15);">
+                        <tr class="text-muted small text-uppercase fw-black letter-spacing-1">
+                            <th class="ps-4 border-bottom border-light border-opacity-10 py-4 history-select-column">
+                                <input type="checkbox" id="selectAllTraces" class="form-check-input history-select-checkbox" aria-label="Select all investigation traces" />
+                            </th>
+                            <th class="border-bottom border-light border-opacity-10 py-4">@Loc.Get("Timestamp")</th>
+                            <th class="border-bottom border-light border-opacity-10">@Loc.Get("UserIntentQuestion")</th>
+                            <th class="border-bottom border-light border-opacity-10">@Loc.Get("AiModel")</th>
+                            <th class="border-bottom border-light border-opacity-10">@Loc.Get("Performance")</th>
+                            <th class="text-end pe-4 border-bottom border-light border-opacity-10">@Loc.Get("Audit")</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        @foreach (var trace in Model)
+                        {
+                            <tr class="history-row border-bottom transition-all cursor-pointer" onclick="openTraceStory(@trace.Id, 'story')" style="border-color: var(--border-color) !important; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                                <td class="ps-4 py-4 history-select-column" onclick="event.stopPropagation();">
+                                    <input type="checkbox" name="selectedTraceIds" value="@trace.Id" class="form-check-input history-trace-checkbox history-select-checkbox" aria-label="Select trace @trace.Id" />
+                                </td>
+                                <td class="py-4">
+                                    <div class="text-muted fw-bold d-flex align-items-center gap-2" style="font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;">
+                                        <i class="bi bi-clock-history opacity-50"></i>
+                                        @trace.CreatedAt.ToString("MMM dd, HH:mm")
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column py-1">
+                                        <div class="mb-2">
+                                            <span class="badge bg-soft-primary text-primary border border-primary border-opacity-25 rounded-pill shadow-sm" style="font-size: 0.65rem; padding: 0.35rem 0.65rem; letter-spacing: 0.05em;"><i class="bi bi-intersect me-1"></i>@trace.Intent</span>
+                                        </div>
+                                        <div class="fw-bold text-truncate text-main" style="max-width: 450px; font-size: 0.95rem;" title="@trace.Question">@trace.Question</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="px-3 py-1 rounded-pill d-inline-flex align-items-center bg-soft-secondary border text-muted shadow-sm" style="border-color: var(--border-color) !important; font-size: 0.75rem; font-family: 'Inter', sans-serif;">
+                                        <i class="bi bi-cpu text-info opacity-75 me-2"></i>
+                                        <span class="fw-semibold">@trace.ModelName</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="progress flex-grow-1 shadow-inner overflow-visible" style="height: 6px; width: 80px; background: rgba(0,0,0,0.3); border-radius: 10px;">
+                                            @{ var pct = Math.Min((trace.TotalElapsedMs / 5000.0) * 100, 100); }
+                                            <div class="progress-bar position-relative @(pct < 30 ? "bg-success" : pct < 70 ? "bg-warning" : "bg-danger") shadow-sm" style="width: @pct%; border-radius: 10px; transition: width 1s ease-in-out;">
+                                                <div class="position-absolute align-middle top-50 translate-middle-y bg-white rounded-circle shadow" style="width: 8px; height: 8px; inset-inline-end: -2px !important; opacity: 0.8;"></div>
+                                            </div>
+                                        </div>
+                                        <span class="fw-bold fs-7 text-muted" style="font-family: 'JetBrains Mono', monospace; width: 50px;">@trace.TotalElapsedMs<span class="opacity-50">ms</span></span>
+                                    </div>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill fw-bold shadow-sm px-3 hover-glow" title="@Loc.Get("Examine")" onclick="event.stopPropagation(); openTraceStory(@trace.Id, 'story');">
+                                        <i class="bi bi-fingerprint me-1"></i> <span style="font-size: 0.8rem; letter-spacing: 0.05em;">@Loc.Get("Examine")</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </form>
+    </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/copilot.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ai-history.css" asp-append-version="true" />
+    <style>
+        html, body {
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: auto !important;
+        }
+
+        .sf-header,
+        .sf-breadcrumb-wrapper,
+        .breadcrumb-wrapper,
+        footer {
+            display: block !important;
+        }
+
+        .breadcrumb {
+            display: flex !important;
+        }
+
+        .sf-wrapper,
+        main[role="main"] {
+            overflow: visible !important;
+        }
+
+        .investigation-page-shell,
+        .investigation-page-shell > * {
+            width: 100% !important;
+            max-width: none !important;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#historySearch').on('keyup', function() {
+                var value = $(this).val().toLowerCase();
+                $("#historyTable tr").filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+        });
+
+        function openTraceStory(id, preferredView = 'story') {
+            if (!id) {
+                return;
+            }
+            window.location.href = '/AiAnalysis/InvestigationStory/' + encodeURIComponent(id) + '?view=' + encodeURIComponent(preferredView);
+        }
+
+        (function initializeHistorySelection() {
+            const form = document.getElementById('investigationDeleteForm');
+            const selectAll = document.getElementById('selectAllTraces');
+            const deleteButton = document.getElementById('deleteSelectedTracesButton');
+            const selectedCount = document.getElementById('selectedTraceCount');
+            const checkboxes = Array.from(document.querySelectorAll('.history-trace-checkbox'));
+
+            if (!form || !selectAll || !deleteButton || !selectedCount) {
+                return;
+            }
+
+            function updateSelectionState() {
+                const selected = checkboxes.filter((checkbox) => checkbox.checked).length;
+                deleteButton.disabled = selected === 0;
+                selectedCount.classList.toggle('d-none', selected === 0);
+                selectedCount.textContent = selected + (selected === 1 ? ' selected' : ' selected');
+                selectAll.checked = selected > 0 && selected === checkboxes.length;
+                selectAll.indeterminate = selected > 0 && selected < checkboxes.length;
+            }
+
+            selectAll.addEventListener('change', () => {
+                checkboxes.forEach((checkbox) => {
+                    const row = checkbox.closest('tr');
+                    if (!row || row.style.display !== 'none') {
+                        checkbox.checked = selectAll.checked;
+                    }
+                });
+                updateSelectionState();
+            });
+
+            checkboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', updateSelectionState);
+            });
+
+            form.addEventListener('submit', (event) => {
+                const selected = checkboxes.filter((checkbox) => checkbox.checked).length;
+                if (selected === 0) {
+                    event.preventDefault();
+                    return;
+                }
+
+                if (!confirm('Delete ' + selected + ' selected investigation trace' + (selected === 1 ? '?' : 's?'))) {
+                    event.preventDefault();
+                }
+            });
+        })();
+    </script>
+}

@@ -1,0 +1,162 @@
+/* Ticket Details Premium Styles */
+
+.ticket-tabset {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+}
+
+.ticket-tabset .nav-item {
+    flex: 1 1 auto;
+}
+
+.ticket-tabset .nav-link {
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    color: var(--text-muted);
+}
+
+.ticket-tabset .nav-link:hover {
+    color: var(--text-main);
+    background: rgba(var(--primary-color-rgb), 0.05); /* Soft primary hover */
+}
+
+.ticket-tabset .nav-link.active {
+    background: var(--primary-gradient) !important;
+    color: #000 !important;
+    box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.2);
+    font-weight: 700;
+}
+
+.sticky-sidebar {
+    position: sticky;
+    top: 80px;
+    z-index: 10;
+}
+
+.meta-item-card {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.meta-item-card:hover {
+    background: var(--surface-soft);
+    border-color: var(--primary-color);
+}
+
+.filter-dropdown-menu {
+    min-width: 280px;
+    padding: 1rem;
+    border-radius: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.filter-option-item {
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.filter-option-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.intelligence-glance {
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), transparent);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 18px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.ticket-tab-panel {
+    padding-top: 0.5rem;
+}
+
+.grounded-panel {
+    overflow: hidden;
+    border-radius: 1.6rem;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+}
+
+.grounded-panel-header {
+    background:
+        radial-gradient(circle at top left, rgba(var(--primary-color-rgb),0.16), transparent 34%),
+        linear-gradient(90deg, rgba(var(--primary-color-rgb),0.12), transparent) !important;
+}
+
+.grounded-callout {
+    display: grid;
+    gap: 1rem;
+    padding: 1.1rem;
+    border-radius: 1.2rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.92));
+}
+
+.grounded-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.grounded-summary-card,
+.grounded-evidence-card {
+    padding: 1.1rem;
+    border-radius: 1.2rem;
+    border: 1px solid var(--border-color);
+    background: rgba(248,250,252,0.94);
+}
+
+.grounded-evidence-item {
+    padding: 0.95rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(148,163,184,0.22);
+    background: rgba(255,255,255,0.92);
+}
+
+.grounded-action-card {
+    background: linear-gradient(180deg, rgba(var(--primary-color-rgb),0.08), rgba(255,255,255,0.96));
+    border-color: rgba(var(--primary-color-rgb),0.16);
+}
+
+.grounded-evidence-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.grounded-open-copilot {
+    background: rgba(59,130,246,0.10) !important;
+    color: #2563eb !important;
+    border: 1px solid rgba(59,130,246,0.18) !important;
+}
+
+.grounded-open-copilot:hover {
+    background: rgba(59,130,246,0.16) !important;
+    color: #1d4ed8 !important;
+}
+
+@media (max-width: 767.98px) {
+    .grounded-summary-grid,
+    .grounded-evidence-grid {
+        grid-template-columns: 1fr;
+    }
+}

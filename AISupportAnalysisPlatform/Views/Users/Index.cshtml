@@ -1,0 +1,93 @@
+@model AISupportAnalysisPlatform.Models.Common.PagedResult<AISupportAnalysisPlatform.Models.ApplicationUser>
+
+@{
+    ViewData["Title"] = "Users Management";
+    var request = Model.Request;
+    var usersTable = new AISupportAnalysisPlatform.Models.Common.FeatureTableShellViewModel
+    {
+        Title = "Access Directory",
+        Subtitle = "Unified user grid with shared filters, search, and table controls.",
+        ShowColumnSearchToggle = true,
+        ColumnSearchLabel = "In-Depth Column Filters",
+        TableSelector = "#usersTable",
+        TablePartialName = "~/Views/Users/_UsersTable.cshtml",
+        TableModel = Model,
+        PaginationModel = Model
+    };
+}
+
+<style>
+    .sort-header {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        text-decoration: none !important;
+        color: var(--text-muted) !important;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        transition: all 0.18s ease;
+        cursor: pointer;
+        border: 1px solid transparent;
+    }
+    .sort-header:hover {
+        background: rgba(var(--primary-color-rgb, 16,185,129), 0.1) !important;
+        color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+    }
+    .sort-header.sort-active {
+        color: var(--primary-color) !important;
+        background: rgba(var(--primary-color-rgb, 16,185,129), 0.08) !important;
+        border-color: rgba(var(--primary-color-rgb, 16,185,129), 0.25) !important;
+    }
+    .sort-icon {
+        font-size: 0.8rem;
+        opacity: 0.75;
+    }
+    .sort-header.sort-active .sort-icon {
+        opacity: 1;
+        color: var(--primary-color) !important;
+    }
+</style>
+
+<div class="row mb-5 animate__animated animate__fadeIn">
+    <div class="col-lg-8">
+        <h2 class="fw-bold mb-1" style="color: var(--text-main) !important;">Human Resources</h2>
+        <p class="text-muted small mb-0" style="color: var(--text-muted) !important;">Manage user access and organizational allocations</p>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+        <a asp-action="Create" class="btn fw-bold px-4 py-2 rounded-pill shadow-sm" style="background: var(--primary-color) !important; color: #000 !important;">
+            <i class="bi bi-person-plus-fill me-2"></i>Provision New User
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4" style="background: var(--bg-card) !important; border: 1px solid var(--border-color) !important;">
+    <div class="card-body p-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-lg-6">
+                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Identify Agent</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color) !important;"><i class="bi bi-search text-primary"></i></span>
+                    <input type="text" name="request.SearchString" class="form-control border-start-0 bg-transparent shadow-none" style="border-color: var(--border-color) !important; color: var(--text-main) !important;" placeholder="Search name or email..." value="@request.SearchString">
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Organizational Entity</label>
+                <select name="request.EntityId" asp-items="ViewBag.EntityFilterId" class="form-select bg-transparent shadow-none" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                    <option value="">All Entities</option>
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" style="background: var(--primary-color) !important; color: #000 !important; border: none !important;">
+                    <i class="bi bi-filter"></i> Apply
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<partial name="~/Views/Shared/Components/Tables/_FeatureTableShell.cshtml" model="usersTable" />

@@ -1,0 +1,1336 @@
+@model AISupportAnalysisPlatform.Models.AI.CopilotChatViewModel
+
+@{
+    var pageTitle = ViewData["CopilotPageTitle"] as string ?? Loc.Get("CopilotEngine");
+    var headerTitle = ViewData["CopilotHeaderTitle"] as string ?? Loc.Get("CopilotEngine");
+    var headerBadge = ViewData["CopilotHeaderBadge"] as string ?? "Admin Enterprise";
+    var headerHint = ViewData["CopilotHeaderHint"] as string ?? string.Empty;
+    var exitController = ViewData["CopilotExitController"] as string ?? "AiAnalysis";
+    var exitAction = ViewData["CopilotExitAction"] as string ?? "Hub";
+    var initialPrompt = ViewData["CopilotInitialPrompt"] as string ?? string.Empty;
+    var copilotSurface = ViewData["CopilotSurface"] as string ?? "default";
+    var copilotReportStartDate = ViewData["CopilotReportStartDate"] as string ?? string.Empty;
+    var copilotReportEndDate = ViewData["CopilotReportEndDate"] as string ?? string.Empty;
+    var capabilitiesLabel = Loc.Get("CopilotCapabilities");
+    if (string.Equals(capabilitiesLabel, "CopilotCapabilities", StringComparison.Ordinal))
+    {
+        capabilitiesLabel = "Copilot Capabilities";
+    }
+
+    var standardLogicLabel = Loc.Get("StandardLogic");
+    if (string.Equals(standardLogicLabel, "StandardLogic", StringComparison.Ordinal))
+    {
+        standardLogicLabel = "Standard Logic";
+    }
+
+    ViewData["Title"] = pageTitle;
+}
+
+<link rel="stylesheet" href="~/css/copilot.css" asp-append-version="true" />
+
+<div class="copilot-shell @(copilotSurface == "reports" ? "copilot-shell-reporting" : "")">
+    <div class="ai-header-shell px-0 animate__animated animate__fadeIn d-flex flex-column flex-md-row justify-content-between align-items-md-center border-bottom" style="border-bottom-color: var(--border-color) !important;">
+        <div class="d-flex align-items-center gap-3">
+            <div class="ai-icon-box shadow-sm position-relative overflow-hidden">
+                <i class="bi bi-chat-square-text text-primary" style="position: relative; z-index: 2;"></i>
+            </div>
+            <div>
+                <nav aria-label="breadcrumb" class="mb-0">
+                    <ol class="breadcrumb mb-0 p-0 bg-transparent" style="font-size: 0.7rem; letter-spacing: 0.03em; font-weight: 700; text-transform: uppercase;">
+                        <li class="breadcrumb-item"><a asp-controller="AiAnalysis" asp-action="Hub" class="text-muted text-decoration-none hover-primary">@Loc.Get("AnalysisHub")</a></li>
+                        <li class="breadcrumb-item active text-primary" aria-current="page">@Loc.Get("Copilot")</li>
+                    </ol>
+                </nav>
+                <p class="mb-0 text-main fw-bold" style="font-size: 0.95rem; line-height: 1.2;">@headerTitle <span class="badge bg-soft-primary text-primary ms-2" style="font-size: 0.55rem; vertical-align: middle;">@headerBadge</span></p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-3 mt-md-0">
+            <button type="button" class="btn btn-soft-primary btn-sm rounded-pill px-3 fw-bold" onclick="showGlobalStory()" title="Investigation Stories">
+                <i class="bi bi-journal-check @(Loc.IsRtl ? "ms-1" : "me-1")"></i> <span>Investigation Stories</span>
+            </button>
+            <button type="button" class="btn btn-soft-danger btn-sm rounded-pill px-3 fw-bold" onclick="clearChat()" title="@Loc.Get("ClearChat")">
+                <i class="bi bi-trash @(Loc.IsRtl ? "ms-1" : "me-1")"></i> <span>@Loc.Get("ClearChat")</span>
+            </button>
+            <a class="btn btn-soft-secondary btn-sm rounded-pill px-4 fw-bold ms-2" asp-controller="@exitController" asp-action="@exitAction" title="@Loc.Get("Exit")">
+                <i class="bi bi-grid @(Loc.IsRtl ? "ms-1" : "me-1")"></i> <span>@Loc.Get("Exit")</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="copilot-workspace">
+        <aside class="copilot-history-pane">
+            <div class="d-flex flex-column h-100">
+                <div class="p-3 border-bottom border-secondary border-opacity-10">
+                    <button type="button" class="btn btn-primary w-100 fw-bold" onclick="clearChat()">
+                        <i class="bi bi-plus-lg"></i>@Loc.Get("NewChat")
+                    </button>
+                </div>
+                <div class="flex-grow-1 overflow-y-auto p-3" style="min-height: 0;">
+                    <div class="small fw-bold text-muted text-uppercase mb-3" style="letter-spacing: 0.1em; font-size: 0.7rem;">
+                        @Loc.Get("Recent")
+                    </div>
+                    <div class="copilot-history-list">
+                        <a href="#" class="copilot-history-item active">
+                            <i class="bi bi-chat-left-text me-2"></i>
+                            <span class="text-truncate">@Loc.Get("CurrentChat")</span>
+                        </a>
+                    </div>
+                    
+                    <div class="small fw-bold text-muted text-uppercase mt-4 mb-3" style="letter-spacing: 0.1em; font-size: 0.7rem;">
+                        @Loc.Get("InvestigationHistory")
+                    </div>
+                    <div id="copilot-story-archive" class="copilot-history-list">
+                        @foreach (var trace in Model.RecentTraces)
+                        {
+                            <a href="javascript:void(0)" class="copilot-history-item" onclick="openInvestigationTracePage('@trace.Id', 'tree')">
+                                <i class="bi bi-shield-check text-primary me-2"></i>
+                                <div class="text-truncate">
+                                <div class="fw-bold" style="font-size: 0.72rem;">@trace.Question</div>
+                                <div class="small opacity-75">Investigation Story • @trace.CreatedAt.ToString("MMM dd, HH:mm")</div>
+                                </div>
+                            </a>
+                        }
+
+                        @if (!Model.RecentTraces.Any())
+                        {
+                            <div class="text-center py-4 opacity-25">
+                                <i class="bi bi-clock-history fs-2 d-block mb-2"></i>
+                                <span class="small">@Loc.Get("NoTracesArchived")</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="mt-2 text-center">
+                        <a asp-controller="AiAnalysis" asp-action="InvestigationHistory" class="small text-primary text-decoration-none fw-bold" style="font-size: 0.65rem;">
+                            <i class="bi bi-arrow-right-circle me-1"></i> @Loc.Get("ViewFullArchive")
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="copilot-chat-pane">
+            <div id="copilot-thread" class="copilot-thread">
+                <div class="copilot-empty">
+                    <h4 class="fw-bold text-main mb-3">@Loc.Get("CopilotEmptyState")</h4>
+                    <p class="text-muted mx-auto" style="max-width: 25rem; font-size: 0.9rem;">@Loc.Get("CopilotConversationHint")</p>
+                </div>
+            </div>
+
+            <div class="copilot-composer">
+                <div class="copilot-input-container">
+                    <textarea id="copilot-question" class="form-control copilot-textarea" 
+                              placeholder="@Loc.Get("CopilotQuestionHint")" style="padding-inline-end: 8rem !important;"
+                              onkeydown="handleCopilotKeyDown(event)"></textarea>
+                    <button id="copilot-mic-btn" class="copilot-mic-btn shadow-sm" type="button" onclick="toggleSpeechRecognition()" aria-label="Record voice">
+                        <i class="bi bi-mic fs-5"></i>
+                    </button>
+                    <button id="copilot-ask-btn" class="copilot-send-btn shadow-sm" type="button" onclick="askCopilot()">
+                        <i class="bi bi-arrow-up-short @(Loc.IsRtl ? "fs-3" : "fs-3")" style="font-weight: bold;"></i>
+                    </button>
+                </div>
+                <div class="mt-2 text-center">
+                    <span class="small text-muted">@Loc.Get("CopilotSendHint")</span>
+                </div>
+            </div>
+        </main>
+
+        <aside class="copilot-side-shell">
+            <div class="copilot-side-card p-3 mb-0">
+                <div class="copilot-panel-heading">@capabilitiesLabel</div>
+
+                <div class="d-grid gap-3 mb-3">
+                    @foreach (var capability in Model.ExternalCapabilities)
+                    {
+                        var primaryPrompt = capability.Prompts.FirstOrDefault() ?? capability.ToolDescription;
+                        var secondaryPrompts = capability.Prompts.Skip(1).ToList();
+
+                        <div class="copilot-capability-group">
+                            <div class="copilot-capability-head">
+                                <div class="copilot-capability-title-wrap">
+                                    <div class="copilot-capability-title">@capability.ToolTitle</div>
+                                    <div class="copilot-capability-subtitle">External utility tool</div>
+                                </div>
+                                <span class="copilot-capability-badge">External</span>
+                            </div>
+                            <button type="button" class="btn btn-soft-primary btn-sm text-start py-2 px-3 w-100 copilot-capability-action"
+                                    onclick='applyPrompt(@Html.Raw(Json.Serialize(primaryPrompt)), false)'
+                                    title="@primaryPrompt">
+                                <i class="bi bi-link-45deg me-1"></i>@primaryPrompt
+                            </button>
+                            <details class="copilot-capability-details mt-2">
+                                <summary class="copilot-capability-summary">
+                                    <span>About this tool</span>
+                                    @if (secondaryPrompts.Any())
+                                    {
+                                        <span class="copilot-capability-summary-count">+@secondaryPrompts.Count more question@(secondaryPrompts.Count > 1 ? "s" : "")</span>
+                                    }
+                                </summary>
+                                <div class="copilot-capability-description" title="@capability.ToolDescription">@capability.ToolDescription</div>
+                                @if (secondaryPrompts.Any())
+                                {
+                                    <div class="d-grid gap-2 mt-2">
+                                        @foreach (var prompt in secondaryPrompts)
+                                        {
+                                            <button type="button" class="btn btn-soft-secondary btn-sm text-start py-2 px-3 w-100 copilot-capability-secondary-action"
+                                                    onclick='applyPrompt(@Html.Raw(Json.Serialize(prompt)), false)'
+                                                    title="@prompt">
+                                                <i class="bi bi-arrow-return-right me-1"></i>@prompt
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </details>
+                        </div>
+                    }
+                    @if (!Model.ExternalCapabilities.Any())
+                    {
+                        <div class="small text-muted italic">@Loc.Get("NoCustomToolsActive")</div>
+                    }
+                </div>
+
+                <div class="copilot-panel-heading mt-4">@standardLogicLabel</div>
+                <div class="d-grid gap-3">
+                    @foreach (var group in Model.StandardPromptGroups)
+                    {
+                        <div class="copilot-standard-group">
+                            <div class="copilot-standard-title">@group.Title</div>
+                            <div class="d-grid gap-2">
+                                @foreach (var prompt in group.Prompts)
+                                {
+                                    <button type="button" class="btn btn-soft-secondary btn-sm text-start py-2 px-3 copilot-standard-action" onclick='applyPrompt(@Html.Raw(Json.Serialize(prompt)), true)' title="@prompt">
+                                        <i class="bi bi-chat-text"></i>@prompt
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div id="copilot-result-card" class="copilot-side-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="small fw-bold text-uppercase text-muted letter-spacing-1">Results & Reasoning Story</div>
+                    <span id="copilot-strength" class="badge rounded-pill">-</span>
+                </div>
+                <div id="copilot-result-empty" class="text-center py-4 text-muted small">
+                    <i class="bi bi-stars d-block fs-2 mb-2 opacity-25"></i>
+                    @Loc.Get("CopilotDetailsEmpty")
+                </div>
+
+                <div id="copilot-result-body" class="d-none">
+                    <div id="copilot-model" class="small text-muted mb-2 text-nowrap overflow-hidden text-truncate"></div>
+                    <div id="copilot-notes" class="alert alert-warning p-1 small border-0 d-none mb-3"></div>
+                    
+                    <div id="copilot-execution-wrap" class="d-none mb-4">
+                        <div id="copilot-execution"></div>
+                    </div>
+
+                    <div id="copilot-query-wrap" class="d-none mb-4">
+                        <div class="small fw-bold text-uppercase text-muted letter-spacing-1 mb-2">@Loc.Get("QueryResults")</div>
+                        <div id="copilot-query-results" class="d-grid gap-2"></div>
+                    </div>
+
+                    <div id="copilot-suggestions-wrap" class="d-none mb-4">
+                        <div class="small fw-bold text-uppercase text-muted letter-spacing-1 mb-2">@Loc.Get("NextSteps")</div>
+                        <div id="copilot-suggestions" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="small fw-bold text-uppercase text-muted letter-spacing-1">@Loc.Get("SimilarTickets")</div>
+                            <span id="copilot-ticket-count" class="badge bg-dark rounded-pill">0</span>
+                        </div>
+                        <div id="copilot-ticket-evidence" class="d-grid gap-2"></div>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="small fw-bold text-uppercase text-muted letter-spacing-1">@Loc.Get("KnowledgeBase")</div>
+                            <span id="copilot-doc-count" class="badge bg-dark rounded-pill">0</span>
+                        </div>
+                        <div id="copilot-doc-evidence" class="d-grid gap-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-3 px-2">
+                 <div class="small text-muted border-top border-white border-opacity-10 py-3">
+                     <i class="bi bi-info-circle me-1"></i> Powered by Copilot Engine v3.0
+                 </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<script>
+    function openInvestigationTracePage(id, view = 'tree') {
+        if (!id || id === '0' || id === 0) {
+            return;
+        }
+
+        const target = `/AiAnalysis/InvestigationStory/${encodeURIComponent(id)}?view=${encodeURIComponent(view)}`;
+        window.location.href = target;
+    }
+</script>
+
+<script>
+    let copilotHistory = [];
+    let copilotQueue = [];
+    let copilotPending = false;
+    const copilotSurfaceKey = @Html.Raw(Json.Serialize(copilotSurface));
+    const copilotStorageKey = `ai-support-copilot-history-${copilotSurfaceKey}`;
+    const copilotInitialPrompt = @Html.Raw(Json.Serialize(initialPrompt));
+    const copilotReportStartDate = @Html.Raw(Json.Serialize(copilotReportStartDate));
+    const copilotReportEndDate = @Html.Raw(Json.Serialize(copilotReportEndDate));
+
+    document.addEventListener('DOMContentLoaded', () => {
+        restoreCopilotState();
+        resetResultDetails();
+
+        const input = document.getElementById('copilot-question');
+
+        // Initialize auto-resize
+        if (input) {
+            input.addEventListener('input', function() {
+                this.style.height = 'auto';
+                const newHeight = Math.min(this.scrollHeight, 250);
+                this.style.height = newHeight + 'px';
+                this.style.overflowY = this.scrollHeight > 250 ? 'auto' : 'hidden';
+
+                const thread = document.getElementById('copilot-thread');
+                if (thread) {
+                    thread.scrollTop = thread.scrollHeight;
+                }
+            });
+            input.focus();
+        }
+
+        if (copilotInitialPrompt && !copilotHistory.length) {
+            applyPrompt(copilotInitialPrompt, false);
+        }
+    });
+
+    function applyPrompt(prompt, autoSend = false) {
+        const input = document.getElementById('copilot-question');
+        if (!input) return;
+        
+        input.value = prompt;
+        input.dispatchEvent(new Event('input')); // Trigger auto-resize
+
+        if (autoSend) {
+            askCopilot();
+        } else {
+            input.focus();
+        }
+    }
+
+    function clearChat() {
+        if (copilotHistory.length > 0 && !confirm("Clear this conversation?")) return;
+        
+        copilotHistory = [];
+        copilotPending = false;
+        
+        const input = document.getElementById('copilot-question');
+        if (input) {
+            input.value = '';
+            input.style.height = 'auto';
+        }
+        
+        renderConversation();
+        resetResultDetails();
+        persistCopilotState();
+    }
+
+    function handleCopilotKeyDown(e) {
+        if ((e.key === 'Enter' || e.keyCode === 13) && !e.shiftKey) {
+            e.preventDefault();
+            askCopilot();
+        }
+    }
+
+    async function askCopilot() {
+        const input = document.getElementById('copilot-question');
+        const question = input.value.trim();
+
+        if (!question) return;
+
+        // Immediately clear input so the user can queue the next question
+        input.value = '';
+        resetComposerInput();
+
+        // Add to the processing queue
+        copilotQueue.push(question);
+        
+        // Show in history immediately as a user message
+        copilotHistory.push({ role: 'user', content: question, isQueued: true });
+        renderConversation();
+        persistCopilotState();
+
+        if (!copilotPending) {
+            processCopilotQueue();
+        }
+    }
+
+    async function processCopilotQueue() {
+        if (copilotQueue.length === 0) {
+            copilotPending = false;
+            renderConversation();
+            return;
+        }
+        
+        copilotPending = true;
+        const currentQuestion = copilotQueue.shift();
+        
+        // Mark the message as active instead of queued
+        const msg = copilotHistory.find(m => m.role === 'user' && m.content === currentQuestion && m.isQueued);
+        if (msg) {
+            msg.isQueued = false;
+            msg.isActive = true;
+        }
+
+        const button = document.getElementById('copilot-ask-btn');
+        const previousHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<div class="copilot-spinner"></div>';
+        
+        renderConversation();
+
+        // Find trace id of last assistant message
+        const lastTraceId = [...copilotHistory].reverse().find(m => m.role === 'assistant' && m.id)?.id || null;
+
+        try {
+            startThinkingSimulation();
+
+            // Only send history of completed messages
+            const validHistory = copilotHistory.filter(m => !m.isQueued && !(m.role === 'user' && m.content === currentQuestion));
+
+            const response = await fetch('@Url.Action("AskCopilot", "AiAnalysis")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    surface: copilotSurfaceKey,
+                    reportStartDate: copilotReportStartDate,
+                    reportEndDate: copilotReportEndDate,
+                    lastTraceId: lastTraceId ? parseInt(lastTraceId, 10) : null,
+                    question: currentQuestion,
+                    history: validHistory
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data?.message || 'Copilot request failed.');
+
+            stopThinkingSimulation();
+            
+            const newAsstMsg = {
+                role: 'assistant',
+                content: data.answer || '',
+                id: data.traceId || null,
+                executionDetails: data.executionDetails || null,
+                responseMode: data.responseMode || '',
+                usedTool: data.usedTool || '',
+                evidenceStrength: data.evidenceStrength || ''
+            };
+            
+            // Insert assistant response directly beneath the associated active user question
+            const reversedIdx = [...copilotHistory].reverse().findIndex(m => m.role === 'user' && m.content === currentQuestion);
+            const userMsgIndex = reversedIdx !== -1 ? copilotHistory.length - 1 - reversedIdx : -1;
+
+            if (userMsgIndex !== -1) {
+                copilotHistory.splice(userMsgIndex + 1, 0, newAsstMsg);
+            } else {
+                copilotHistory.push(newAsstMsg);
+            }
+            
+            // We do NOT renderConversation here yet, because if there's more in the queue, 
+            // the next processCopilotQueue() call will render it with the new Thinking indicator.
+            // If the queue is empty, the next processCopilotQueue() call will render it without the Thinking indicator.
+            renderCopilotResult(data);
+            persistCopilotState();
+        } catch (error) {
+            stopThinkingSimulation();
+            alert("Error processing question: " + error.message);
+        } finally {
+            // Guarantee the active message is marked as finished, even if fetch failed
+            const activeMsg = copilotHistory.find(m => m.role === 'user' && m.isActive);
+            if (activeMsg) activeMsg.isActive = false;
+
+            if (copilotQueue.length === 0) {
+                button.disabled = false;
+                button.innerHTML = previousHtml;
+            }
+            
+            // Process the next item in the queue
+            processCopilotQueue();
+        }
+    }
+
+    function renderConversation() {
+        const host = document.getElementById('copilot-thread');
+        
+        if (!copilotHistory.length && !copilotPending) {
+            host.innerHTML = `
+                <div class="copilot-empty">
+                    <h3 class="fw-bold text-main mb-3">@Loc.Get("CopilotEmptyState")</h3>
+                    <p class="text-muted mx-auto" style="max-width: 25rem;">@Loc.Get("CopilotConversationHint")</p>
+                </div>
+            `;
+            updateStoryArchive([]);
+            return;
+        }
+
+        const assistantMessages = copilotHistory.filter(m => m.role === 'assistant');
+        updateStoryArchive(assistantMessages);
+
+        let clearBanner = '';
+        if (copilotHistory.length > 2) {
+            clearBanner = `
+                <div class="text-center mb-4 opacity-75">
+                    <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none fw-bold" onclick="clearChat()">
+                        <i class="bi bi-trash me-1"></i> Clear Conversation
+                    </button>
+                </div>
+            `;
+        }
+
+        let thinkingIndicatorHtml = '';
+        if (copilotPending) {
+            thinkingIndicatorHtml = `
+                <div class="copilot-message copilot-message-assistant" id="copilot-thinking-msg">
+                    <div class="small fw-bold text-uppercase opacity-75 mb-2" style="letter-spacing: 0.12em; color: var(--text-muted);">
+                        @Loc.Get("AskCopilot")
+                    </div>
+                    <div class="copilot-message-body" id="copilot-thinking-host">
+                        <div class="copilot-thinking-indicator">
+                            <div class="copilot-thinking-header">
+                                <div class="copilot-thinking-dot-pulse">
+                                    <div></div><div></div><div></div>
+                                </div>
+                                <span>@Loc.Get("CopilotThinking")</span>
+                            </div>
+                            <ul class="copilot-thinking-steps" id="copilot-thinking-steps">
+                                <!-- Steps injected by JS -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let thinkingInserted = false;
+
+        const renderedMessages = copilotHistory.map((message, idx) => {
+            let itemHtml = '';
+            
+            if (message.role === 'user') {
+                if (message.isQueued) {
+                    if (copilotPending && !thinkingInserted) {
+                        itemHtml += thinkingIndicatorHtml;
+                        thinkingInserted = true;
+                    }
+                    itemHtml += `
+                        <div class="copilot-message copilot-message-user opacity-50" id="msg-${idx}">
+                            <div class="small fw-bold text-uppercase opacity-75 mb-2 d-flex justify-content-end align-items-center gap-2" style="letter-spacing: 0.12em; color: var(--text-muted);">
+                                <i class="bi bi-hourglass-split"></i> PENDING
+                            </div>
+                            <div class="copilot-message-body">${formatMessageBody(message.content || '')}</div>
+                        </div>
+                    `;
+                } else if (message.isActive) {
+                    itemHtml += `
+                        <div class="copilot-message copilot-message-user position-relative" id="msg-${idx}">
+                            <div class="position-absolute top-0 start-0 w-100 h-100 rounded-4" style="box-shadow: inset 0 0 0 2px var(--primary-color); opacity: 0.4; pointer-events: none;"></div>
+                            <div class="small fw-bold text-uppercase mb-2 d-flex justify-content-end align-items-center gap-2" style="letter-spacing: 0.12em; color: var(--primary-color);">
+                                <div class="spinner-border spinner-border-sm" role="status" style="width: 0.8rem; height: 0.8rem; border-width: 0.12em;"></div>
+                                PROCESSING
+                            </div>
+                            <div class="copilot-message-body">${formatMessageBody(message.content || '')}</div>
+                        </div>
+                    `;
+                    if (copilotPending && !thinkingInserted) {
+                        itemHtml += thinkingIndicatorHtml;
+                        thinkingInserted = true;
+                    }
+                } else {
+                    itemHtml += `
+                        <div class="copilot-message copilot-message-user" id="msg-${idx}">
+                            <div class="small fw-bold text-uppercase opacity-75 mb-2" style="letter-spacing: 0.12em; color: var(--primary-color);">
+                                @Loc.Get("YouLabel")
+                            </div>
+                            <div class="copilot-message-body">${formatMessageBody(message.content || '')}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                const hasSteps = message.executionDetails?.steps?.length > 0;
+                let inlineStory = '';
+                
+                if (message.id) {
+                    inlineStory = `
+                        <div class="mt-2 text-end">
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-none border-0 bg-soft-primary" 
+                                    style="font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05em;"
+                                    onclick="openInvestigationTracePage('${message.id}', 'tree')">
+                                <i class="bi bi-shield-check me-1"></i> Open Investigation Story
+                            </button>
+                        </div>
+                    `;
+                }
+
+                itemHtml += `
+                    <div class="copilot-message copilot-message-assistant" id="msg-${idx}">
+                        <div class="small fw-bold text-uppercase opacity-75 mb-2" style="letter-spacing: 0.12em; color: var(--text-muted);">
+                            @Loc.Get("AskCopilot")
+                        </div>
+                        <div class="copilot-message-body">${formatMessageBody(message.content || '')}</div>
+                        ${inlineStory}
+                    </div>
+                `;
+            }
+
+            return itemHtml;
+        });
+
+        if (copilotPending && !thinkingInserted) {
+            renderedMessages.push(thinkingIndicatorHtml);
+        }
+
+        const centeredWrapper = `
+            <div style="max-width: 900px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 1.5rem;">
+                ${renderedMessages.join('')}
+            </div>
+        `;
+
+        host.innerHTML = clearBanner + centeredWrapper;
+        requestAnimationFrame(() => {
+            host.scrollTo({ top: host.scrollHeight, behavior: 'smooth' });
+        });
+    }
+
+    function resetComposerInput() {
+        const input = document.getElementById('copilot-question');
+        if (!input) return;
+        input.style.height = 'auto';
+    }
+
+    function updateStoryArchive(messages) {
+        const archiveHost = document.getElementById('copilot-story-archive');
+        if (!messages.length) {
+            archiveHost.innerHTML = `
+                <div class="text-center py-4 opacity-25">
+                    <i class="bi bi-clock-history fs-2 d-block mb-2"></i>
+                    <span class="small">No traces archived</span>
+                </div>
+            `;
+            return;
+        }
+
+        archiveHost.innerHTML = messages.map((m, i) => {
+            const steps = m.executionDetails?.steps || [];
+            const layer = steps.length > 1 ? steps[1].layer : 'Logic';
+            const action = steps.length > 1 ? steps[1].action : 'Processing';
+            
+            return `
+                <a href="javascript:void(0)" class="copilot-history-item" onclick="${m.id ? `openInvestigationTracePage('${m.id}', 'tree')` : `jumpToMessage('msg-${copilotHistory.indexOf(m)}')`}">
+                    <i class="bi bi-shield-check text-primary me-2"></i>
+                    <div class="text-truncate">
+                        <div class="fw-bold" style="font-size: 0.72rem;">${escapeHtml(layer)} Investigation Story</div>
+                        <div class="small opacity-75">${escapeHtml(action)}</div>
+                    </div>
+                </a>
+            `;
+        }).reverse().join('');
+    }
+
+    function jumpToMessage(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            el.classList.add('animate__animated', 'animate__pulse');
+            setTimeout(() => el.classList.remove('animate__animated', 'animate__pulse'), 2000);
+            
+            // Try to expand the story automatically
+            const storyToggle = el.querySelector('.copilot-inline-story-toggle');
+            if (storyToggle) {
+                const storyId = storyToggle.getAttribute('onclick').match(/'([^']+)'/)[1];
+                const storyBody = document.getElementById(storyId);
+                if (storyBody && storyBody.classList.contains('d-none')) {
+                    toggleInlineStory(storyId);
+                }
+            }
+        }
+    }
+
+    function showGlobalStory() {
+        const assistantMsgs = copilotHistory.filter(m => m.role === 'assistant' && (m.executionDetails || m.id));
+        if (!assistantMsgs.length) {
+            alert('No investigation stories available in this session yet.');
+            return;
+        }
+        
+        // Just jump to the latest one
+        const latest = assistantMsgs[assistantMsgs.length - 1];
+        if (latest.id) {
+            openInvestigationTracePage(latest.id, 'tree');
+        } else {
+            jumpToMessage('msg-' + copilotHistory.indexOf(latest));
+        }
+    }
+
+    function toggleInlineStory(id) {
+        const body = document.getElementById(id);
+        const chevron = document.getElementById(id + '-chevron');
+        if (!body || !chevron) return;
+        
+        if (body.classList.contains('d-none')) {
+            body.classList.remove('d-none');
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            body.classList.add('d-none');
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function renderCopilotResult(data) {
+        document.getElementById('copilot-result-empty').classList.add('d-none');
+        document.getElementById('copilot-result-body').classList.remove('d-none');
+        const toolLabel = data.usedTool && data.usedTool !== 'none'
+            ? ` • ${humanizeToolName(data.usedTool)}`
+            : '';
+        document.getElementById('copilot-model').innerText = `${data.modelName || ''}${data.responseMode ? ` • ${data.responseMode}` : ''}${toolLabel}`;
+
+        const strength = document.getElementById('copilot-strength');
+        strength.textContent = `${data.evidenceStrength || 'Weak'} @Loc.Get("EvidenceStrength")`;
+        strength.style.background = data.evidenceStrength === 'Strong'
+            ? 'rgba(16,185,129,0.12)'
+            : data.evidenceStrength === 'Moderate'
+                ? 'rgba(245,158,11,0.12)'
+                : data.evidenceStrength === 'General'
+                    ? 'rgba(59,130,246,0.12)'
+                    : 'rgba(239,68,68,0.12)';
+        strength.style.color = data.evidenceStrength === 'Strong'
+            ? getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim()
+            : data.evidenceStrength === 'Moderate'
+                ? '#f59e0b'
+                : data.evidenceStrength === 'General'
+                    ? '#2563eb'
+                    : '#ef4444';
+
+        const notes = document.getElementById('copilot-notes');
+        if (data.notes) {
+            notes.classList.remove('d-none');
+            notes.textContent = data.notes;
+        } else {
+            notes.classList.add('d-none');
+            notes.textContent = '';
+        }
+
+        const tickets = data.similarTickets || [];
+        const docs = data.knowledgeMatches || [];
+        const execution = data.executionDetails || {};
+        const dynamicRows = data.dynamicTicketResults || [];
+        const structuredColumns = data.structuredColumns || [];
+        const structuredRows = data.structuredRows || [];
+        const structuredQueryResults = data.structuredQueryResults || [];
+
+        renderExecutionDetails(execution, data.dynamicQueryPlan);
+        renderDynamicResults(dynamicRows, structuredColumns, structuredRows, structuredQueryResults);
+
+        document.getElementById('copilot-ticket-count').textContent = `${tickets.length}`;
+        document.getElementById('copilot-ticket-evidence').innerHTML = tickets.length
+            ? tickets.map(t => `
+                <div class="copilot-evidence-item">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                        <strong>${t.ticketNumber}</strong>
+                        <span class="copilot-score">${formatPercent(t.score)}</span>
+                    </div>
+                    <div class="small fw-semibold mb-1">${escapeHtml(t.title || '')}</div>
+                    <div class="small text-muted">${escapeHtml(t.resolutionSummary || '')}</div>
+                </div>`).join('')
+            : `<div class="copilot-detail-placeholder">@Loc.Get("NoSimilarTicketEvidence")</div>`;
+
+        document.getElementById('copilot-doc-count').textContent = `${docs.length}`;
+        document.getElementById('copilot-doc-evidence').innerHTML = docs.length
+            ? docs.map(d => `
+                <div class="copilot-evidence-item">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                        <strong>${escapeHtml(d.documentName || '')}</strong>
+                        <span class="copilot-score">${formatPercent(d.score)}</span>
+                    </div>
+                    <div class="small fw-semibold mb-1">${escapeHtml(d.sectionTitle || '')}</div>
+                    <div class="small text-muted mb-2">${escapeHtml(d.excerpt || '')}</div>
+                    <div class="small text-muted">V ${formatPercent(d.vectorScore)} • L ${formatPercent(d.lexicalScore)}</div>
+                </div>`).join('')
+            : `<div class="copilot-detail-placeholder">@Loc.Get("NoKnowledgeBaseEvidence")</div>`;
+
+        const suggestions = (data.suggestedPrompts || []).filter(Boolean);
+        const suggestionsWrap = document.getElementById('copilot-suggestions-wrap');
+        const suggestionsHost = document.getElementById('copilot-suggestions');
+        if (suggestions.length) {
+            suggestionsWrap.classList.remove('d-none');
+            suggestionsHost.innerHTML = suggestions.map(prompt => `
+                <button type="button" class="btn copilot-prompt-chip" onclick="applyPrompt('${escapeJs(prompt)}', true)">${escapeHtml(prompt)}</button>
+            `).join('');
+        } else {
+            suggestionsWrap.classList.add('d-none');
+            suggestionsHost.innerHTML = '';
+        }
+    }
+
+    let thinkingInterval = null;
+    const thinkingSteps = [
+        { label: 'Context Gathering', icon: 'bi-search' },
+        { label: 'Signal Discovery', icon: 'bi-cpu' },
+        { label: 'Intent Normalization', icon: 'bi-magic' },
+        { label: 'Building Execution Strategy', icon: 'bi-journal-code' },
+        { label: 'Executing Data Query', icon: 'bi-database-gear' },
+        { label: 'Verifying Results', icon: 'bi-shield-check' },
+        { label: 'Finalizing Answer', icon: 'bi-chat-left-dots' }
+    ];
+
+    function startThinkingSimulation() {
+        if (!document.getElementById('copilot-thinking-steps')) {
+            // If not rendered yet, retry in a moment
+            setTimeout(startThinkingSimulation, 50);
+            return;
+        }
+
+        let currentStep = 0;
+        
+        if (thinkingInterval) clearInterval(thinkingInterval);
+
+        const addStep = () => {
+            const activeHost = document.getElementById('copilot-thinking-steps');
+            if (!activeHost) return; // Wait for DOM to be ready
+
+            if (currentStep >= thinkingSteps.length) {
+                clearInterval(thinkingInterval);
+                return;
+            }
+
+            // Mark previous as completed
+            const prev = activeHost.querySelector('.is-pending');
+            if (prev) {
+                prev.classList.remove('is-pending');
+                prev.classList.add('is-completed');
+                prev.querySelector('i').className = 'bi bi-check-circle-fill';
+            }
+
+            const step = thinkingSteps[currentStep];
+            const li = document.createElement('li');
+            li.className = 'copilot-thinking-step is-pending';
+            li.innerHTML = `<i class="bi ${step.icon}"></i> <span>${step.label}</span>`;
+            activeHost.appendChild(li);
+
+            currentStep++;
+
+            // Auto-scroll chat to show new step
+            const thread = document.getElementById('copilot-thread');
+            if (thread) thread.scrollTop = thread.scrollHeight;
+        };
+
+        // Clear it once initially
+        const initialHost = document.getElementById('copilot-thinking-steps');
+        if (initialHost) initialHost.innerHTML = '';
+        
+        addStep(); // Show first step immediately
+        thinkingInterval = setInterval(addStep, 1500 + Math.random() * 1000);
+    }
+
+    function stopThinkingSimulation() {
+        if (thinkingInterval) clearInterval(thinkingInterval);
+        thinkingInterval = null;
+    }
+
+    function renderExecutionDetails(execution, dynamicPlan) {
+        const wrap = document.getElementById('copilot-execution-wrap');
+        const host = document.getElementById('copilot-execution');
+        const steps = execution.steps || [];
+
+        // Always show the trace panel if we have steps
+        if (!steps.length && !execution.routeReason) {
+            wrap.classList.add('d-none');
+            host.innerHTML = '';
+            return;
+        }
+
+        wrap.classList.remove('d-none');
+
+        const statusIcon = (status) => {
+            switch (status) {
+                case 'ok':    return '<i class="bi bi-check-circle-fill text-success"></i>';
+                case 'warn':  return '<i class="bi bi-exclamation-triangle-fill text-warning"></i>';
+                case 'error': return '<i class="bi bi-x-circle-fill text-danger"></i>';
+                case 'skip':  return '<i class="bi bi-dash-circle-fill text-muted"></i>';
+                default:      return '<i class="bi bi-circle text-muted"></i>';
+            }
+        };
+
+        const layerColor = (layer) => {
+            switch (layer) {
+                case 'Context':  return '#6366f1';
+                case 'Router':   return '#f59e0b';
+                case 'Executor': return getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+                case 'Complete': return '#3b82f6';
+                default:         return '#6b7280';
+            }
+        };
+
+        let stepsHtml = steps.map((step, i) => `
+            <div class="copilot-story-step ${i === steps.length - 1 ? 'copilot-story-step-last' : ''}" style="--step-color: ${layerColor(step.layer)}">
+                <div class="copilot-story-dot">${statusIcon(step.status)}</div>
+                <div class="copilot-story-content">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="copilot-story-layer" style="color: ${layerColor(step.layer)}">${escapeHtml(step.layer)}</span>
+                        ${step.elapsedMs > 0 ? `<span class="copilot-story-time">${step.elapsedMs}ms</span>` : ''}
+                    </div>
+                    <div class="copilot-story-action">${escapeHtml(step.action)}</div>
+                    <div class="copilot-story-detail">${escapeHtml(step.detail)}</div>
+                </div>
+            </div>
+        `).join('');
+
+        // Add total time footer
+        if (execution.totalElapsedMs) {
+            stepsHtml += `
+                <div class="copilot-story-footer">
+                    <i class="bi bi-stopwatch me-1"></i> Total: ${execution.totalElapsedMs}ms
+                    ${execution.plannerConfidence ? ` • Confidence: ${execution.plannerConfidence}` : ''}
+                </div>
+            `;
+        }
+
+        // Add dynamic query plan summary if present
+        if (dynamicPlan) {
+            stepsHtml += `
+                <div class="copilot-story-plan">
+                    <div class="copilot-story-plan-title"><i class="bi bi-database me-1"></i> Query Plan</div>
+                    <div class="copilot-story-plan-body">${summarizeDynamicPlan(dynamicPlan)}</div>
+                </div>
+            `;
+        }
+
+        host.innerHTML = `
+            <div class="small fw-bold text-uppercase text-muted letter-spacing-1 mb-2">
+                <i class="bi bi-journal-text me-1"></i> Execution Story
+            </div>
+            <div class="copilot-story-timeline">${stepsHtml}</div>
+        `;
+    }
+
+
+
+    function renderDynamicResults(rows, structuredColumns, structuredRows, structuredQueryResults) {
+        const wrap = document.getElementById('copilot-query-wrap');
+        const host = document.getElementById('copilot-query-results');
+        if (structuredQueryResults.length > 1) {
+            wrap.classList.remove('d-none');
+            host.innerHTML = structuredQueryResults.map(result => {
+                const execution = result.execution || {};
+                const columns = (execution.structuredColumns || []).length
+                    ? execution.structuredColumns
+                    : Object.keys((execution.structuredRows || [])[0]?.values || {});
+                const rows = execution.structuredRows || [];
+
+                return `
+                    <div class="mb-3">
+                        <div class="small fw-bold text-uppercase text-muted mb-2">${escapeHtml(result.label || 'Query')}</div>
+                        <div class="small fw-semibold mb-2">${escapeHtml(result.queryText || '')}</div>
+                        ${rows.length ? renderStructuredTableMarkup(columns, rows) : `<div class="small text-muted">${escapeHtml(execution.answer || '')}</div>`}
+                    </div>
+                `;
+            }).join('');
+            return;
+        }
+
+        if (structuredRows.length) {
+            const columns = structuredColumns.length
+                ? structuredColumns
+                : Object.keys(structuredRows[0]?.values || {});
+
+            wrap.classList.remove('d-none');
+            host.innerHTML = renderStructuredTableMarkup(columns, structuredRows);
+            return;
+        }
+
+        if (!rows.length) {
+            wrap.classList.add('d-none');
+            host.innerHTML = '';
+            return;
+        }
+
+        wrap.classList.remove('d-none');
+        host.innerHTML = rows.map(row => `
+            <a href="@Url.Action("Details", "Tickets")/${row.ticketId}" class="text-decoration-none">
+                <div class="copilot-dataset-card">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                        <strong>${escapeHtml(row.ticketNumber || '')}</strong>
+                        <span class="copilot-score">${escapeHtml(row.status || '')}</span>
+                    </div>
+                    <div class="small fw-semibold mb-1">${escapeHtml(row.title || '')}</div>
+                    <div class="small copilot-dataset-meta mb-1">
+                        ${escapeHtml(row.priority || '')}${row.entityName ? ` • ${escapeHtml(row.entityName)}` : ''}${row.productArea ? ` • ${escapeHtml(row.productArea)}` : ''}
+                    </div>
+                    <div class="small copilot-dataset-meta">
+                        ${escapeHtml(row.createdAtUtc || '')}${row.requiresManagerReview ? ' • Manager review' : ''}
+                    </div>
+                </div>
+            </a>
+        `).join('');
+    }
+
+    function renderStructuredTableMarkup(columns, rows) {
+        return `
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>${columns.map(column => `<th class="small text-muted text-uppercase">${escapeHtml(humanizeColumn(column))}</th>`).join('')}</tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(row => `
+                            <tr>
+                                ${columns.map(column => `<td>${escapeHtml(getStructuredCellValue(row.values || {}, column))}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+
+    function resetResultDetails() {
+        document.getElementById('copilot-result-empty').classList.remove('d-none');
+        document.getElementById('copilot-result-body').classList.add('d-none');
+        document.getElementById('copilot-model').innerText = '';
+        document.getElementById('copilot-strength').textContent = '-';
+        document.getElementById('copilot-strength').removeAttribute('style');
+        document.getElementById('copilot-notes').classList.add('d-none');
+        document.getElementById('copilot-notes').textContent = '';
+        document.getElementById('copilot-suggestions-wrap').classList.add('d-none');
+        document.getElementById('copilot-suggestions').innerHTML = '';
+        document.getElementById('copilot-execution-wrap').classList.add('d-none');
+        document.getElementById('copilot-execution').innerHTML = '';
+
+        document.getElementById('copilot-query-wrap').classList.add('d-none');
+        document.getElementById('copilot-query-results').innerHTML = '';
+        document.getElementById('copilot-ticket-count').textContent = '0';
+        document.getElementById('copilot-doc-count').textContent = '0';
+        document.getElementById('copilot-ticket-evidence').innerHTML = `<div class="copilot-detail-placeholder">@Loc.Get("NoSimilarTicketEvidence")</div>`;
+        document.getElementById('copilot-doc-evidence').innerHTML = `<div class="copilot-detail-placeholder">@Loc.Get("NoKnowledgeBaseEvidence")</div>`;
+    }
+
+    function persistCopilotState() {
+        localStorage.setItem(copilotStorageKey, JSON.stringify(copilotHistory.slice(-20)));
+    }
+
+    function restoreCopilotState() {
+        try {
+            const storedHistory = localStorage.getItem(copilotStorageKey);
+
+            if (storedHistory) {
+                const parsed = JSON.parse(storedHistory);
+                if (Array.isArray(parsed)) {
+                    copilotHistory = parsed
+                        .filter(item => item && typeof item.role === 'string' && typeof item.content === 'string')
+                        .map(item => {
+                            // Cleanse transient state flags on reload
+                            item.isQueued = false;
+                            item.isActive = false;
+                            return item;
+                        })
+                        .slice(-20);
+                }
+            }
+            renderConversation();
+        } catch {
+            copilotHistory = [];
+            renderConversation();
+        }
+    }
+
+    function formatPercent(value) {
+        const numeric = Number(value || 0);
+        const percentage = numeric <= 1 ? numeric * 100 : numeric;
+        return `${percentage.toFixed(1)}%`;
+    }
+
+    function formatTemperature(value) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? `${numeric.toFixed(1)}°C` : 'n/a';
+    }
+
+    function formatSpeed(value) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? `${numeric.toFixed(1)} km/h` : 'n/a';
+    }
+
+    function formatMessageBody(value) {
+        return renderMarkdownLite(value);
+    }
+
+    function renderMarkdownLite(value) {
+        const lines = String(value || '').split('\n');
+        const blocks = [];
+        let paragraph = [];
+        let table = [];
+
+        const flushParagraph = () => {
+            if (!paragraph.length) return;
+            blocks.push(`<p class="mb-2">${formatInlineMarkdown(paragraph.join('<br>'))}</p>`);
+            paragraph = [];
+        };
+
+        const flushTable = () => {
+            if (!table.length) return;
+            const rows = table
+                .map(line => line.trim())
+                .filter(line => line.startsWith('|') && line.endsWith('|'))
+                .map(line => line.slice(1, -1).split('|').map(cell => formatInlineMarkdown(escapeHtml(cell.trim()))));
+
+            if (rows.length >= 2) {
+                const [header, ...bodyRows] = rows.filter((row, index) => index !== 1 || !row.every(cell => /^-+$/.test(cell.replace(/<[^>]+>/g, ''))));
+                blocks.push(`
+                    <div class="copilot-inline-table-wrap">
+                        <table class="copilot-inline-table">
+                            <thead><tr>${header.map(cell => `<th>${cell}</th>`).join('')}</tr></thead>
+                            <tbody>${bodyRows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+                        </table>
+                    </div>
+                `);
+            } else {
+                paragraph.push(...table.map(line => escapeHtml(line)));
+                flushParagraph();
+            }
+
+            table = [];
+        };
+
+        for (const rawLine of lines) {
+            const line = rawLine.trimEnd();
+            const trimmed = line.trim();
+
+            if (!trimmed) {
+                flushParagraph();
+                flushTable();
+                continue;
+            }
+
+            if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+                flushParagraph();
+                table.push(trimmed);
+                continue;
+            }
+
+            flushTable();
+            paragraph.push(escapeHtml(line));
+        }
+
+        flushParagraph();
+        flushTable();
+
+        return blocks.join('') || '<p class="mb-0"></p>';
+    }
+
+    function formatInlineMarkdown(value) {
+        return String(value || '')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>');
+    }
+
+    function summarizeDynamicPlan(plan) {
+        const parts = [];
+        if (plan.targetView) {
+            parts.push(`view: ${plan.targetView}`);
+        }
+        if (plan.intent) {
+            parts.push(`intent: ${plan.intent}`);
+        }
+        if (Array.isArray(plan.statusNames) && plan.statusNames.length) {
+            parts.push(`status: ${plan.statusNames.join(', ')}`);
+        }
+        if (plan.entityName) {
+            parts.push(`entity: ${plan.entityName}`);
+        }
+        if (plan.priorityName) {
+            parts.push(`priority: ${plan.priorityName}`);
+        }
+        if (plan.relativeDateRange) {
+            parts.push(`date: ${plan.relativeDateRange}`);
+        }
+        if (plan.textSearch) {
+            parts.push(`text: ${plan.textSearch}`);
+        }
+        if (plan.maxResults) {
+            parts.push(`limit: ${plan.maxResults}`);
+        }
+        if (plan.sortBy) {
+            parts.push(`sort: ${plan.sortBy} ${plan.sortDirection || ''}`.trim());
+        }
+        if (Array.isArray(plan.selectedColumns) && plan.selectedColumns.length) {
+            parts.push(`columns: ${plan.selectedColumns.join(', ')}`);
+        }
+        return parts.join(' • ');
+    }
+
+    function humanizeColumn(column) {
+        const labels = {
+            ticketNumber: 'Ticket',
+            entityName: 'Entity',
+            agentName: 'Agent',
+            totalTickets: 'Ticket Count',
+            openTickets: 'Open',
+            resolvedTickets: 'Resolved',
+            closedTickets: 'Closed',
+            slaBreaches: 'SLA Breaches',
+            slaBreachRate: 'SLA Breach %',
+            avgResolutionHours: 'Avg Resolution (h)',
+            avgFirstResponseHours: 'Avg First Response (h)',
+            ticketsLast7Days: 'Last 7d',
+            ticketsLast30Days: 'Last 30d',
+            totalAssigned: 'Assigned',
+            currentOpenAssigned: 'Open Assigned',
+            totalResolved: 'Resolved',
+            totalComments: 'Comments',
+            assignedLast7Days: 'Assigned 7d',
+            resolvedLast30Days: 'Resolved 30d',
+            productArea: 'Product',
+            requiresManagerReview: 'Manager Review',
+            createdAtUtc: 'Created',
+            resolvedAtUtc: 'Resolved'
+        };
+
+        const normalized = (column || '').charAt(0).toLowerCase() + (column || '').slice(1);
+        return labels[normalized] || column;
+    }
+
+    function getStructuredCellValue(values, column) {
+        if (!values) return '-';
+        const camel = (column || '').charAt(0).toLowerCase() + (column || '').slice(1);
+        return values[column] || values[camel] || '-';
+    }
+    function refreshStoryArchive(data) {
+        if (!data.traceId) return;
+        
+        const archiveHost = document.getElementById('copilot-story-archive');
+        const emptyState = archiveHost.querySelector('.text-center.py-4');
+        if (emptyState) emptyState.remove();
+
+        const newItem = document.createElement('a');
+        newItem.href = 'javascript:void(0)';
+        newItem.className = 'copilot-history-item animate__animated animate__fadeInLeft';
+        newItem.onclick = () => openInvestigationTracePage(data.traceId, 'tree');
+        newItem.innerHTML = `
+            <i class="bi bi-shield-check text-primary me-2"></i>
+            <div class="text-truncate">
+                <div class="fw-bold" style="font-size: 0.72rem;">${escapeHtml(data.question)}</div>
+                <div class="small opacity-75">Just now</div>
+            </div>
+        `;
+        
+        archiveHost.prepend(newItem);
+        
+        // Keep only top 10
+        const items = archiveHost.querySelectorAll('.copilot-history-item');
+        if (items.length > 10) {
+            items[items.length - 1].remove();
+        }
+    }
+
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function escapeJs(value) {
+        return String(value)
+            .replaceAll('\\', '\\\\')
+            .replaceAll("'", "\\'");
+    }
+
+    function humanizeToolName(value) {
+        return String(value || '')
+            .replaceAll('_', ' ')
+            .replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    let copilotRecognition;
+    let copilotIsRecording = false;
+
+    if ('webkitSpeechRecognition' in window) {
+        copilotRecognition = new webkitSpeechRecognition();
+        copilotRecognition.continuous = true;
+        copilotRecognition.interimResults = true;
+        // The language will automatically default to the browser's language setting.
+        
+        copilotRecognition.onstart = function() {
+            copilotIsRecording = true;
+            const btn = document.getElementById('copilot-mic-btn');
+            if(btn) {
+                btn.classList.add('recording');
+                btn.innerHTML = '<i class="bi bi-mic-fill fs-5"></i>';
+            }
+            document.getElementById('copilot-question').placeholder = "Listening...";
+        };
+
+        copilotRecognition.onresult = function(event) {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                }
+            }
+            
+            if (finalTranscript) {
+                const input = document.getElementById('copilot-question');
+                if (input.value && !input.value.endsWith(' ')) {
+                    input.value += ' ' + finalTranscript;
+                } else {
+                    input.value += finalTranscript;
+                }
+                // Trigger auto resize
+                input.dispatchEvent(new Event('input'));
+            }
+        };
+
+        copilotRecognition.onerror = function(event) {
+            console.error("Speech recognition error", event.error);
+            stopCopilotRecording();
+        };
+
+        copilotRecognition.onend = function() {
+            stopCopilotRecording();
+            // Automatically submit if there is text? Keep it manual for them to check the text
+        };
+    }
+
+    function toggleSpeechRecognition() {
+        if (!copilotRecognition) {
+            alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
+            return;
+        }
+
+        if (copilotIsRecording) {
+            copilotRecognition.stop();
+        } else {
+            document.getElementById('copilot-question').focus();
+            copilotRecognition.start();
+        }
+    }
+
+    function stopCopilotRecording() {
+        copilotIsRecording = false;
+        const btn = document.getElementById('copilot-mic-btn');
+        if(btn) {
+            btn.classList.remove('recording');
+            btn.innerHTML = '<i class="bi bi-mic fs-5"></i>';
+        }
+        const input = document.getElementById('copilot-question');
+        if(input) input.placeholder = '@Loc.Get("CopilotQuestionHint")';
+    }
+</script>

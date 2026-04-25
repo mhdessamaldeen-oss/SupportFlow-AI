@@ -1,0 +1,495 @@
+{
+  "version": "1.0",
+  "allowedOutputShapes": ["Metric", "Table", "Detail", "Mixed"],
+  "allowedOperations": [
+    { "name": "Count", "aliases": ["count", "how many", "how much", "total", "number of"] },
+    { "name": "Breakdown", "aliases": ["by", "per", "compare", "group", "top", "rank"] },
+    { "name": "Aggregate", "aliases": ["average", "avg", "sum", "max", "min"] },
+    { "name": "Detail", "aliases": ["detail", "details", "more about"] },
+    { "name": "List", "aliases": ["show", "list", "find", "get"] }
+  ],
+  "entities": [
+    {
+      "name": "Ticket",
+      "datasetKey": "Tickets",
+      "viewKind": "TicketRecords",
+      "supportsRawSql": false,
+      "defaultOrderBy": "CreatedAt",
+      "defaultOrderDirection": "DESC",
+      "table": "Tickets",
+      "description": "Primary admin record for support requests, incidents, issues, workload, SLA, and operational reporting.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 200,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown", "Compare", "Rank"],
+      "defaultFields": ["TicketNumber", "Title", "StatusName", "PriorityName", "EntityName", "AssigneeName", "CreatedAt"],
+      "aliases": ["ticket", "tickets", "cases", "support requests", "issues"],
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "description": "Internal ticket id.", "capabilities": ["filter", "aggregate"], "operators": ["Equals"], "aggregations": ["Count"] },
+        { "name": "TicketNumber", "type": "string", "description": "Human-readable ticket number.", "isDefaultVisible": true, "aliases": ["ticket", "ticket number", "case number", "reference"], "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "Title", "type": "string", "description": "Ticket subject/title.", "isDefaultVisible": true, "aliases": ["title", "subject"], "capabilities": ["filter", "sort", "display"], "operators": ["Contains", "Equals"] },
+        { "name": "Description", "type": "text", "description": "Detailed ticket description.", "aliases": ["description", "details", "issue text"], "capabilities": ["filter", "display"], "operators": ["Contains"], "securityLevel": "Admin" },
+        { "name": "CategoryId", "type": "int", "description": "Ticket category foreign key.", "aliases": ["category"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "PriorityId", "type": "int", "description": "Ticket priority foreign key.", "aliases": ["priority"], "capabilities": ["filter", "group", "sort", "display"], "operators": ["Equals", "In"] },
+        { "name": "StatusId", "type": "int", "description": "Ticket status foreign key.", "aliases": ["status", "state"], "capabilities": ["filter", "group", "sort", "display"], "operators": ["Equals", "In"] },
+        { "name": "SourceId", "type": "int", "description": "Ticket source foreign key.", "aliases": ["source", "channel"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "EntityId", "type": "int", "description": "Related business entity or organization.", "aliases": ["entity", "department", "organization"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "AssignedToUserId", "type": "string", "description": "User assigned to the ticket.", "aliases": ["assigned user", "assignee", "support staff", "owner"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "CreatedByUserId", "type": "string", "description": "User who created/reported the ticket.", "aliases": ["created by", "reporter", "requester"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "ResolvedByUserId", "type": "string", "isNullable": true, "description": "User who resolved the ticket.", "aliases": ["resolved by", "resolver"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "CreatedAt", "type": "datetime", "description": "Ticket creation timestamp.", "aliases": ["created", "creation date", "date"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Equals", "Between", "GreaterThan", "LessThan"] },
+        { "name": "UpdatedAt", "type": "datetime", "isNullable": true, "description": "Last update timestamp.", "aliases": ["updated", "last update"], "capabilities": ["filter", "sort", "display"], "operators": ["Between", "GreaterThan", "LessThan"] },
+        { "name": "DueDate", "type": "datetime", "isNullable": true, "description": "Ticket due date.", "aliases": ["due", "due date"], "capabilities": ["filter", "sort", "display"], "operators": ["Between", "GreaterThan", "LessThan"] },
+        { "name": "ProductArea", "type": "string", "isNullable": true, "description": "Product/module area.", "aliases": ["product", "product area", "module"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "EnvironmentName", "type": "string", "isNullable": true, "description": "Affected environment.", "aliases": ["environment", "env"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "ImpactScope", "type": "string", "isNullable": true, "description": "Impact scope.", "aliases": ["impact", "scope"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "AffectedUsersCount", "type": "int", "isNullable": true, "description": "Number of affected users.", "aliases": ["affected users", "impact count"], "capabilities": ["filter", "sort", "aggregate", "display"], "operators": ["Equals", "GreaterThan", "LessThan", "Between"], "aggregations": ["Sum", "Avg", "Min", "Max"] },
+        { "name": "EscalationLevel", "type": "string", "isNullable": true, "description": "Escalation level.", "aliases": ["escalation", "level"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "FirstResponseDueAt", "type": "datetime", "isNullable": true, "description": "First response SLA due time.", "capabilities": ["filter", "sort", "display"], "operators": ["Between", "GreaterThan", "LessThan"] },
+        { "name": "ResolutionDueAt", "type": "datetime", "isNullable": true, "description": "Resolution SLA due time.", "capabilities": ["filter", "sort", "display"], "operators": ["Between", "GreaterThan", "LessThan"] },
+        { "name": "ResolvedAt", "type": "datetime", "isNullable": true, "description": "Resolution timestamp.", "aliases": ["resolved", "resolved date"], "capabilities": ["filter", "sort", "display"], "operators": ["Between", "GreaterThan", "LessThan"] },
+        { "name": "ClosedAt", "type": "datetime", "isNullable": true, "description": "Closed timestamp.", "aliases": ["closed", "closed date"], "capabilities": ["filter", "sort", "display"], "operators": ["Between", "GreaterThan", "LessThan"] },
+        { "name": "IsSlaBreached", "type": "bool", "description": "Whether SLA was breached.", "aliases": ["sla breach", "breached", "overdue"], "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "IsDeleted", "type": "bool", "description": "Soft delete flag. Must normally be filtered false.", "capabilities": ["filter"], "operators": ["Equals"], "isSensitive": true },
+        { "name": "RequiresManagerReview", "type": "bool", "description": "Whether ticket requires manager review.", "aliases": ["manager review", "needs review"], "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "ResolutionSummary", "type": "string", "isNullable": true, "description": "Resolution summary.", "capabilities": ["filter", "display"], "operators": ["Contains"] },
+        { "name": "RootCause", "type": "string", "isNullable": true, "description": "Root cause.", "capabilities": ["filter", "display"], "operators": ["Contains"] },
+        { "name": "PendingReason", "type": "string", "isNullable": true, "description": "Reason ticket is pending.", "aliases": ["pending reason"], "capabilities": ["filter", "display"], "operators": ["Contains"] }
+      ],
+      "relationships": [
+        { "name": "Entity", "target": "Entity", "sourceField": "EntityId", "targetField": "Id", "type": "ManyToOne", "description": "Ticket belongs to an entity.", "isDefaultJoin": true },
+        { "name": "Status", "target": "TicketStatus", "sourceField": "StatusId", "targetField": "Id", "type": "ManyToOne", "description": "Ticket workflow status.", "isDefaultJoin": true },
+        { "name": "Priority", "target": "TicketPriority", "sourceField": "PriorityId", "targetField": "Id", "type": "ManyToOne", "description": "Ticket priority level.", "isDefaultJoin": true },
+        { "name": "Category", "target": "TicketCategory", "sourceField": "CategoryId", "targetField": "Id", "type": "ManyToOne", "description": "Ticket category.", "isDefaultJoin": true },
+        { "name": "Source", "target": "TicketSource", "sourceField": "SourceId", "targetField": "Id", "type": "ManyToOne", "description": "Ticket source channel.", "isDefaultJoin": true },
+        { "name": "Assignee", "target": "User", "sourceField": "AssignedToUserId", "targetField": "Id", "type": "ManyToOne", "description": "Ticket assigned user.", "isDefaultJoin": true },
+        { "name": "Reporter", "target": "User", "sourceField": "CreatedByUserId", "targetField": "Id", "type": "ManyToOne", "description": "Ticket creator/reporter." },
+        { "name": "ResolvedBy", "target": "User", "sourceField": "ResolvedByUserId", "targetField": "Id", "type": "ManyToOne", "description": "User who resolved the ticket." },
+        { "name": "Comments", "target": "TicketComment", "sourceField": "Id", "targetField": "TicketId", "type": "OneToMany", "description": "Ticket comment thread." },
+        { "name": "Attachments", "target": "TicketAttachment", "sourceField": "Id", "targetField": "TicketId", "type": "OneToMany", "description": "Ticket attachments." },
+        { "name": "Histories", "target": "TicketHistory", "sourceField": "Id", "targetField": "TicketId", "type": "OneToMany", "description": "Ticket audit/history entries." }
+      ]
+    },
+    {
+      "name": "Entity",
+      "datasetKey": "Entities",
+      "viewKind": "EntitySummary",
+      "supportsRawSql": false,
+      "defaultOrderBy": "Name",
+      "defaultOrderDirection": "ASC",
+      "table": "Entitys",
+      "description": "Business entity, department, organization, or client associated with tickets and users.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 200,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown", "Compare", "Rank"],
+      "defaultFields": ["Name", "IsActive"],
+      "aliases": ["entity", "entities", "department", "departments", "organization", "organizations"],
+      "lookupEnrichment": {
+        "valueField": "Name",
+        "activeField": "IsActive",
+        "labels": ["entity", "department", "organization"],
+        "maxValues": 250
+      },
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter", "aggregate"], "operators": ["Equals"], "aggregations": ["Count"] },
+        { "name": "Name", "type": "string", "description": "Entity name.", "isDefaultVisible": true, "aliases": ["entity", "entity name", "department", "organization"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "IsActive", "type": "bool", "description": "Whether the entity is active.", "isDefaultVisible": true, "aliases": ["active"], "capabilities": ["filter", "group", "display"], "operators": ["Equals"] }
+      ],
+      "relationships": [
+        { "name": "Tickets", "target": "Ticket", "sourceField": "Id", "targetField": "EntityId", "type": "OneToMany", "description": "Tickets belonging to the entity." },
+        { "name": "Users", "target": "User", "sourceField": "Id", "targetField": "EntityId", "type": "OneToMany", "description": "Users assigned to the entity." }
+      ]
+    },
+    {
+      "name": "TicketStatus",
+      "table": "TicketStatuses",
+      "description": "Workflow status lookup such as Open, In Progress, Resolved, or Closed.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 100,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown"],
+      "defaultFields": ["Name", "IsClosedState"],
+      "lookupEnrichment": {
+        "valueField": "Name",
+        "activeField": "IsActive",
+        "labels": ["status", "state"],
+        "maxValues": 250
+      },
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter", "aggregate"], "operators": ["Equals"], "aggregations": ["Count"] },
+        { "name": "Name", "type": "string", "description": "Status name.", "isDefaultVisible": true, "aliases": ["status", "state"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "IsActive", "type": "bool", "description": "Whether status is active.", "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "IsClosedState", "type": "bool", "description": "Whether status represents a closed lifecycle state.", "aliases": ["closed state"], "capabilities": ["filter", "group", "display"], "operators": ["Equals"] }
+      ],
+      "relationships": [
+        { "name": "Tickets", "target": "Ticket", "sourceField": "Id", "targetField": "StatusId", "type": "OneToMany", "description": "Tickets with this status." }
+      ]
+    },
+    {
+      "name": "TicketPriority",
+      "table": "TicketPriorities",
+      "description": "Priority lookup such as Low, High, or Critical.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 100,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown"],
+      "defaultFields": ["Name", "Level"],
+      "lookupEnrichment": {
+        "valueField": "Name",
+        "activeField": "IsActive",
+        "labels": ["priority"],
+        "maxValues": 250
+      },
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter", "aggregate"], "operators": ["Equals"], "aggregations": ["Count"] },
+        { "name": "Name", "type": "string", "description": "Priority name.", "isDefaultVisible": true, "aliases": ["priority"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "Level", "type": "int", "description": "Priority sort level.", "capabilities": ["filter", "sort", "aggregate", "display"], "operators": ["Equals", "GreaterThan", "LessThan"], "aggregations": ["Min", "Max", "Avg"] },
+        { "name": "IsActive", "type": "bool", "description": "Whether priority is active.", "capabilities": ["filter", "group", "display"], "operators": ["Equals"] }
+      ],
+      "relationships": [
+        { "name": "Tickets", "target": "Ticket", "sourceField": "Id", "targetField": "PriorityId", "type": "OneToMany", "description": "Tickets with this priority." }
+      ]
+    },
+    {
+      "name": "TicketCategory",
+      "table": "TicketCategories",
+      "description": "Category lookup for routing and issue classification.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 100,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown"],
+      "defaultFields": ["Name"],
+      "lookupEnrichment": {
+        "valueField": "Name",
+        "activeField": "IsActive",
+        "labels": ["category"],
+        "maxValues": 250
+      },
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter", "aggregate"], "operators": ["Equals"], "aggregations": ["Count"] },
+        { "name": "Name", "type": "string", "description": "Category name.", "isDefaultVisible": true, "aliases": ["category"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "IsActive", "type": "bool", "description": "Whether category is active.", "capabilities": ["filter", "group", "display"], "operators": ["Equals"] }
+      ],
+      "relationships": [
+        { "name": "Tickets", "target": "Ticket", "sourceField": "Id", "targetField": "CategoryId", "type": "OneToMany", "description": "Tickets in this category." }
+      ]
+    },
+    {
+      "name": "TicketSource",
+      "table": "TicketSources",
+      "description": "Source/channel lookup such as Email, Phone, Portal, or API.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 100,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown"],
+      "defaultFields": ["Name"],
+      "lookupEnrichment": {
+        "valueField": "Name",
+        "activeField": "IsActive",
+        "labels": ["source", "channel"],
+        "maxValues": 250
+      },
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter", "aggregate"], "operators": ["Equals"], "aggregations": ["Count"] },
+        { "name": "Name", "type": "string", "description": "Source name.", "isDefaultVisible": true, "aliases": ["source", "channel"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "IsActive", "type": "bool", "description": "Whether source is active.", "capabilities": ["filter", "group", "display"], "operators": ["Equals"] }
+      ],
+      "relationships": [
+        { "name": "Tickets", "target": "Ticket", "sourceField": "Id", "targetField": "SourceId", "type": "OneToMany", "description": "Tickets from this source." }
+      ]
+    },
+    {
+      "name": "User",
+      "datasetKey": "Users",
+      "viewKind": "Users",
+      "supportsRawSql": false,
+      "defaultOrderBy": "UserName",
+      "defaultOrderDirection": "ASC",
+      "table": "AspNetUsers",
+      "description": "Application user, support staff, manager, administrator, requester, or ticket owner.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 200,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown", "Compare", "Rank"],
+      "defaultFields": ["FirstName", "LastName", "Email", "EntityName", "IsActive"],
+      "aliases": ["user", "users", "staff", "employee", "employees", "requester", "assignee", "owner"],
+      "fields": [ 
+        { "name": "Id", "type": "string", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "UserName", "type": "string", "description": "Login username.", "aliases": ["username", "user name"], "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"], "isSensitive": true },
+        { "name": "Email", "type": "string", "description": "User email.", "aliases": ["email"], "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"], "isSensitive": true },
+        { "name": "FirstName", "type": "string", "description": "First name.", "aliases": ["first name"], "isDefaultVisible": true, "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "LastName", "type": "string", "description": "Last name.", "aliases": ["last name"], "isDefaultVisible": true, "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "IsActive", "type": "bool", "description": "Whether user is active.", "aliases": ["active"], "isDefaultVisible": true, "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "EntityId", "type": "int", "isNullable": true, "description": "Entity connected to the user.", "aliases": ["entity"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] }
+      ],
+      "relationships": [
+        { "name": "Entity", "target": "Entity", "sourceField": "EntityId", "targetField": "Id", "type": "ManyToOne", "description": "User belongs to an entity.", "isDefaultJoin": true },
+        { "name": "AssignedTickets", "target": "Ticket", "sourceField": "Id", "targetField": "AssignedToUserId", "type": "OneToMany", "description": "Tickets assigned to this user." },
+        { "name": "CreatedTickets", "target": "Ticket", "sourceField": "Id", "targetField": "CreatedByUserId", "type": "OneToMany", "description": "Tickets created/reported by this user." },
+        { "name": "Roles", "target": "Role", "sourceField": "Id", "targetField": "Id", "type": "ManyToMany", "via": "AspNetUserRoles", "viaSourceField": "UserId", "viaTargetField": "RoleId", "description": "Security roles assigned to this user." }
+      ]
+    },
+    {
+      "name": "Role",
+      "datasetKey": "Roles",
+      "viewKind": "Roles",
+      "supportsRawSql": false,
+      "defaultOrderBy": "Name",
+      "defaultOrderDirection": "ASC",
+      "table": "AspNetRoles",
+      "description": "Security role or permission group used for admin/user filtering.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 100,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown"],
+      "defaultFields": ["Name"],
+      "aliases": ["role", "roles", "permission", "permissions", "security group"],
+      "lookupEnrichment": {
+        "valueField": "Name",
+        "labels": ["role", "permission"],
+        "maxValues": 250
+      },
+      "fields": [ 
+        { "name": "Id", "type": "string", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "Name", "type": "string", "description": "Role name such as Admin, Support, Manager.", "isDefaultVisible": true, "aliases": ["role", "role name", "permission"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "NormalizedName", "type": "string", "description": "Normalized role name.", "capabilities": ["filter"], "operators": ["Equals", "Contains"] }
+      ],
+      "relationships": [
+        { "name": "Users", "target": "User", "sourceField": "Id", "targetField": "Id", "type": "ManyToMany", "via": "AspNetUserRoles", "viaSourceField": "RoleId", "viaTargetField": "UserId", "description": "Users assigned to this role." }
+      ]
+    },
+    {
+      "name": "UserRole",
+      "table": "AspNetUserRoles",
+      "description": "Join table between users and roles.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 200,
+      "allowedOperations": ["Count", "List", "Breakdown"],
+      "defaultFields": ["UserId", "RoleId"],
+      "fields": [ 
+        { "name": "UserId", "type": "string", "isKey": true, "description": "User id.", "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "RoleId", "type": "string", "isKey": true, "description": "Role id.", "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] }
+      ],
+      "relationships": [
+        { "name": "User", "target": "User", "sourceField": "UserId", "targetField": "Id", "type": "ManyToOne", "description": "User side of user-role assignment." },
+        { "name": "Role", "target": "Role", "sourceField": "RoleId", "targetField": "Id", "type": "ManyToOne", "description": "Role side of user-role assignment." }
+      ]
+    },
+    {
+      "name": "TicketComment",
+      "table": "TicketComments",
+      "description": "Ticket communication, updates, and conversation history.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 200,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown", "Rank"],
+      "defaultFields": ["TicketId", "CreatedByUserId", "CreatedAt"],
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "TicketId", "type": "int", "description": "Ticket id.", "aliases": ["ticket"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "Content", "type": "text", "description": "Comment content.", "aliases": ["comment", "message", "reply"], "capabilities": ["filter", "display"], "operators": ["Contains"], "securityLevel": "Admin" },
+        { "name": "CreatedByUserId", "type": "string", "description": "Comment author.", "aliases": ["author", "commented by"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "CreatedAt", "type": "datetime", "description": "Comment creation time.", "aliases": ["comment date", "created"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Between", "GreaterThan", "LessThan"] }
+      ],
+      "relationships": [
+        { "name": "Ticket", "target": "Ticket", "sourceField": "TicketId", "targetField": "Id", "type": "ManyToOne", "description": "Comment belongs to ticket.", "isDefaultJoin": true },
+        { "name": "Author", "target": "User", "sourceField": "CreatedByUserId", "targetField": "Id", "type": "ManyToOne", "description": "Comment author." },
+        { "name": "Attachments", "target": "TicketAttachment", "sourceField": "Id", "targetField": "CommentId", "type": "OneToMany", "description": "Attachments linked to this comment." }
+      ]
+    },
+    {
+      "name": "TicketAttachment",
+      "table": "TicketAttachments",
+      "description": "Files uploaded to tickets or comments.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 200,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown", "Rank"],
+      "defaultFields": ["TicketId", "FileName", "ContentType", "FileSize", "UploadedAt"],
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "TicketId", "type": "int", "description": "Ticket id.", "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "FileName", "type": "string", "description": "Uploaded file name.", "aliases": ["file", "file name", "attachment"], "capabilities": ["filter", "sort", "display"], "operators": ["Contains", "Equals"] },
+        { "name": "ContentType", "type": "string", "description": "MIME content type.", "aliases": ["file type", "content type"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "FileSize", "type": "long", "description": "File size in bytes.", "aliases": ["size", "file size"], "capabilities": ["filter", "sort", "aggregate", "display"], "operators": ["Equals", "GreaterThan", "LessThan", "Between"], "aggregations": ["Sum", "Avg", "Min", "Max"] },
+        { "name": "CommentId", "type": "int", "isNullable": true, "description": "Linked comment id.", "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "UploadedByUserId", "type": "string", "description": "User who uploaded the attachment.", "aliases": ["uploaded by"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "UploadedAt", "type": "datetime", "description": "Upload timestamp.", "aliases": ["uploaded", "upload date"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Between", "GreaterThan", "LessThan"] }
+      ],
+      "relationships": [
+        { "name": "Ticket", "target": "Ticket", "sourceField": "TicketId", "targetField": "Id", "type": "ManyToOne", "description": "Attachment belongs to ticket.", "isDefaultJoin": true },
+        { "name": "Comment", "target": "TicketComment", "sourceField": "CommentId", "targetField": "Id", "type": "ManyToOne", "description": "Attachment belongs to comment." },
+        { "name": "Uploader", "target": "User", "sourceField": "UploadedByUserId", "targetField": "Id", "type": "ManyToOne", "description": "User who uploaded attachment." }
+      ]
+    },
+    {
+      "name": "TicketHistory",
+      "table": "TicketHistories",
+      "description": "Audit trail and change history for tickets.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 200,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown", "Rank"],
+      "defaultFields": ["TicketId", "Action", "UserId", "CreatedAt"],
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "TicketId", "type": "int", "description": "Ticket id.", "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "Action", "type": "string", "description": "Action performed.", "aliases": ["action", "change", "event"], "capabilities": ["filter", "group", "sort", "display"], "operators": ["Equals", "Contains", "In"] },
+        { "name": "OldValue", "type": "string", "isNullable": true, "description": "Previous value.", "capabilities": ["filter", "display"], "operators": ["Contains", "Equals"] },
+        { "name": "NewValue", "type": "string", "isNullable": true, "description": "New value.", "capabilities": ["filter", "display"], "operators": ["Contains", "Equals"] },
+        { "name": "UserId", "type": "string", "description": "User who performed the action.", "aliases": ["changed by", "actor"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "CreatedAt", "type": "datetime", "description": "History event timestamp.", "aliases": ["history date", "event date"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Between", "GreaterThan", "LessThan"] }
+      ],
+      "relationships": [
+        { "name": "Ticket", "target": "Ticket", "sourceField": "TicketId", "targetField": "Id", "type": "ManyToOne", "description": "History belongs to ticket.", "isDefaultJoin": true },
+        { "name": "Actor", "target": "User", "sourceField": "UserId", "targetField": "Id", "type": "ManyToOne", "description": "User who changed the ticket." }
+      ]
+    },
+    {
+      "name": "TicketAnalytics",
+      "datasetKey": "Tickets",
+      "viewKind": "TicketRecords",
+      "supportsRawSql": true,
+      "defaultOrderBy": "CreatedAt",
+      "defaultOrderDirection": "DESC",
+      "table": "vw_TicketAnalytics",
+      "description": "Denormalized analytical view with pre-joined lookups and computed metrics.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 500,
+      "allowedOperations": ["Count", "List", "Breakdown", "Compare", "Rank"],
+      "defaultFields": ["TicketNumber", "Title", "StatusName", "PriorityName", "EntityName", "CreatedAt"],
+      "aliases": ["tickets", "cases", "ticket analytics", "ticket report", "ticket workload"],
+      "fields": [ 
+        { "name": "TicketId", "type": "int", "isKey": true, "capabilities": ["filter", "aggregate"], "operators": ["Equals"], "aggregations": ["Count"] },
+        { "name": "TicketNumber", "type": "string", "isDefaultVisible": true, "aliases": ["ticket", "ticket number", "case number", "reference"], "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "Title", "type": "string", "isDefaultVisible": true, "aliases": ["title", "subject", "issue title"], "capabilities": ["filter", "display"], "operators": ["Contains"] },
+        { "name": "StatusName", "type": "string", "isDefaultVisible": true, "aliases": ["status", "state", "current status"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "IsClosedStatus", "type": "bool", "aliases": ["closed", "is closed"], "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "PriorityName", "type": "string", "isDefaultVisible": true, "aliases": ["priority", "severity", "urgency"], "capabilities": ["filter", "group", "sort", "display"], "operators": ["Equals", "In"] },
+        { "name": "PriorityLevel", "type": "int", "aliases": ["priority level"], "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "GreaterThan", "LessThan"] },
+        { "name": "CategoryName", "type": "string", "aliases": ["category", "type"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "SourceName", "type": "string", "aliases": ["source", "channel", "origin"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "EntityName", "type": "string", "isDefaultVisible": true, "aliases": ["entity", "department", "organization", "client"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "CreatedByName", "type": "string", "aliases": ["creator", "reporter", "created by"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "AssignedToName", "type": "string", "aliases": ["assignee", "support user", "owner", "assigned to"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "ResolvedByName", "type": "string", "isNullable": true, "aliases": ["resolver", "resolved by"], "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "CreatedAt", "type": "datetime", "isDefaultVisible": true, "aliases": ["created", "date", "creation date"], "capabilities": ["filter", "sort", "group", "display"], "operators": ["Between", "GreaterThan", "LessThan"] },
+        { "name": "ResolvedAt", "type": "datetime", "isNullable": true, "aliases": ["resolved date", "resolution date"], "capabilities": ["filter", "sort", "display"], "operators": ["Between"] },
+        { "name": "ClosedAt", "type": "datetime", "isNullable": true, "aliases": ["closed date"], "capabilities": ["filter", "sort", "display"], "operators": ["Between"] },
+        { "name": "IsSlaBreached", "type": "bool", "aliases": ["sla breach", "breached", "overdue", "breach"], "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "RequiresManagerReview", "type": "bool", "aliases": ["manager review", "needs review"], "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "CommentCount", "type": "int", "aliases": ["comments", "comment count", "number of comments"], "capabilities": ["filter", "sort", "aggregate", "display"], "operators": ["GreaterThan", "LessThan"], "aggregations": ["Avg", "Sum", "Max"] },
+        { "name": "AttachmentCount", "type": "int", "aliases": ["attachments", "attachment count"], "capabilities": ["filter", "sort", "aggregate", "display"], "operators": ["GreaterThan"], "aggregations": ["Sum", "Avg"] },
+        { "name": "DaysOpen", "type": "int", "isNullable": true, "aliases": ["age", "days open", "longest open", "oldest"], "capabilities": ["filter", "sort", "aggregate", "display"], "operators": ["GreaterThan", "LessThan", "Between"], "aggregations": ["Avg", "Max", "Min"] },
+        { "name": "HoursToFirstResponse", "type": "int", "isNullable": true, "aliases": ["first response time", "response speed"], "capabilities": ["filter", "sort", "aggregate", "display"], "operators": ["GreaterThan", "LessThan"], "aggregations": ["Avg", "Min", "Max"] },
+        { "name": "HoursToResolution", "type": "int", "isNullable": true, "aliases": ["resolution time", "speed"], "capabilities": ["filter", "sort", "aggregate", "display"], "operators": ["GreaterThan", "LessThan", "Between"], "aggregations": ["Avg", "Min", "Max"] }
+      ]
+    },
+    {
+      "name": "EntityPerformance",
+      "datasetKey": "Entities",
+      "viewKind": "EntitySummary",
+      "supportsRawSql": true,
+      "defaultOrderBy": "EntityName",
+      "defaultOrderDirection": "ASC",
+      "table": "vw_EntityPerformance",
+      "description": "Pre-aggregated entity-level KPIs for performance dashboards.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 100,
+      "allowedOperations": ["List", "Breakdown", "Compare", "Rank"],
+      "defaultFields": ["EntityName", "TotalTickets", "ResolvedTickets", "SlaBreachRate", "AvgResolutionHours"],
+      "aliases": ["entity performance", "entity health", "department health", "entity summary", "entity report"],
+      "fields": [ 
+        { "name": "EntityId", "type": "int", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "EntityName", "type": "string", "isDefaultVisible": true, "aliases": ["entity", "department", "organization", "client"], "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "IsActive", "type": "bool", "aliases": ["active"], "capabilities": ["filter", "display"], "operators": ["Equals"] },
+        { "name": "TotalTickets", "type": "int", "isDefaultVisible": true, "aliases": ["total", "volume", "ticket count", "total tickets", "number of tickets"], "capabilities": ["sort", "aggregate", "display"], "aggregations": ["Sum", "Avg"] },
+        { "name": "OpenTickets", "type": "int", "aliases": ["open", "open tickets", "active tickets", "open count"], "capabilities": ["sort", "display"] },
+        { "name": "ClosedTickets", "type": "int", "aliases": ["closed", "closed tickets", "closed count"], "capabilities": ["sort", "display"] },
+        { "name": "ResolvedTickets", "type": "int", "isDefaultVisible": true, "aliases": ["resolved", "resolved tickets", "resolved count"], "capabilities": ["sort", "aggregate", "display"], "aggregations": ["Sum"] },
+        { "name": "SlaBreaches", "type": "int", "aliases": ["breaches", "sla breach", "sla breaches"], "capabilities": ["sort", "display"] },
+        { "name": "SlaBreachRate", "type": "decimal", "isDefaultVisible": true, "aliases": ["breach rate", "sla rate", "sla percentage", "sla %"], "capabilities": ["sort", "display"], "operators": ["GreaterThan", "LessThan"] },
+        { "name": "AvgResolutionHours", "type": "int", "isNullable": true, "isDefaultVisible": true, "aliases": ["avg resolution", "speed", "resolution speed", "average resolution time"], "capabilities": ["sort", "display"], "operators": ["GreaterThan", "LessThan"] },
+        { "name": "EscalatedTickets", "type": "int", "aliases": ["escalated", "escalation"], "capabilities": ["sort", "display"] },
+        { "name": "TicketsLast7Days", "type": "int", "aliases": ["last week", "recent", "7 days"], "capabilities": ["sort", "display"] },
+        { "name": "TicketsLast30Days", "type": "int", "aliases": ["last month", "30 days"], "capabilities": ["sort", "display"] }
+      ]
+    },
+    {
+      "name": "Notification",
+      "datasetKey": "Notifications",
+      "viewKind": "Notifications",
+      "supportsRawSql": false,
+      "defaultOrderBy": "CreatedAt",
+      "defaultOrderDirection": "DESC",
+      "table": "Notifications",
+      "description": "System and user notifications, alerts, and platform messages.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 20,
+      "maxLimit": 100,
+      "allowedOperations": ["Count", "List", "Detail"],
+      "defaultFields": ["Title", "Message", "IsRead", "CreatedAt"],
+      "aliases": ["notification", "notifications", "alert", "alerts", "message", "messages"],
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "Title", "type": "string", "description": "Notification title.", "isDefaultVisible": true, "aliases": ["title", "alert"], "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "Message", "type": "string", "description": "Notification content.", "isDefaultVisible": true, "aliases": ["message", "content", "text"], "capabilities": ["filter", "display"], "operators": ["Contains"] },
+        { "name": "UserId", "type": "string", "description": "User who received the notification.", "aliases": ["recipient", "user"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "IsRead", "type": "bool", "description": "Whether the notification was read.", "aliases": ["read", "seen"], "isDefaultVisible": true, "capabilities": ["filter", "group", "display"], "operators": ["Equals"] },
+        { "name": "CreatedAt", "type": "datetime", "description": "Notification timestamp.", "aliases": ["date", "time"], "isDefaultVisible": true, "capabilities": ["filter", "sort", "display"], "operators": ["Between", "GreaterThan", "LessThan"] }
+      ]
+    },
+    {
+      "name": "SystemSetting",
+      "datasetKey": "Settings",
+      "viewKind": "Settings",
+      "supportsRawSql": false,
+      "defaultOrderBy": "Key",
+      "defaultOrderDirection": "ASC",
+      "table": "SystemSettings",
+      "description": "Platform configuration and global system settings.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 50,
+      "maxLimit": 200,
+      "allowedOperations": ["Count", "List", "Detail"],
+      "defaultFields": ["Key", "Value"],
+      "aliases": ["setting", "settings", "configuration", "config"],
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "Key", "type": "string", "description": "Setting unique key.", "isDefaultVisible": true, "aliases": ["key", "name", "setting"], "capabilities": ["filter", "sort", "display"], "operators": ["Equals", "Contains"] },
+        { "name": "Value", "type": "string", "description": "Setting current value.", "isDefaultVisible": true, "aliases": ["value"], "capabilities": ["filter", "display"], "operators": ["Contains"] }
+      ]
+    },
+    {
+      "name": "TicketAiAnalysis",
+      "datasetKey": "AiAnalysis",
+      "viewKind": "AiAnalysis",
+      "supportsRawSql": false,
+      "defaultOrderBy": "CreatedAt",
+      "defaultOrderDirection": "DESC",
+      "table": "TicketAiAnalyses",
+      "description": "AI-generated insights, root cause analysis, and automated findings for support tickets.",
+      "securityScope": "AdminOnly",
+      "defaultLimit": 20,
+      "maxLimit": 100,
+      "allowedOperations": ["Count", "List", "Detail", "Breakdown"],
+      "defaultFields": ["TicketId", "AnalysisStatus", "ConfidenceLevel", "CreatedOn"],
+      "aliases": ["ai analysis", "analysis", "insights", "findings"],
+      "fields": [ 
+        { "name": "Id", "type": "int", "isKey": true, "capabilities": ["filter"], "operators": ["Equals"] },
+        { "name": "TicketId", "type": "int", "description": "Related ticket id.", "aliases": ["ticket"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "AnalysisStatus", "type": "string", "description": "Status of the AI analysis (e.g., Completed, Failed).", "isDefaultVisible": true, "aliases": ["status"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "ConfidenceLevel", "type": "string", "description": "Confidence of the AI finding (e.g., High, Moderate).", "isDefaultVisible": true, "aliases": ["confidence"], "capabilities": ["filter", "group", "display"], "operators": ["Equals", "In"] },
+        { "name": "Summary", "type": "text", "description": "The summary findings from the AI.", "aliases": ["findings", "result", "insights", "summary"], "capabilities": ["filter", "display"], "operators": ["Contains"] },
+        { "name": "CreatedOn", "type": "datetime", "description": "When analysis was performed.", "isDefaultVisible": true, "capabilities": ["filter", "sort", "display"], "operators": ["Between", "GreaterThan", "LessThan"] }
+      ],
+      "relationships": [
+        { "name": "Ticket", "target": "Ticket", "sourceField": "TicketId", "targetField": "Id", "type": "ManyToOne", "description": "Analysis belongs to a ticket." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+@model AISupportAnalysisPlatform.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "Create User";
+}
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h4 class="mb-0 fw-bold">Create User</h4>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create">
+                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" type="email" required />
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="EntityId" class="form-label">Entity</label>
+                        <select asp-for="EntityId" class="form-select" asp-items="ViewBag.EntityId" required></select>
+                    </div>
+
+                    <div class="mb-4 p-3 bg-light border border-light rounded-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" name="isAdmin" value="true" style="transform: scale(1.3);" id="isAdminCheck">
+                            <label class="form-check-label fw-bold text-primary" for="isAdminCheck">Grant Administrator Privileges (Is Admin)</label>
+                        </div>
+                        <div class="text-muted small ms-4 ps-2">Checking this box explicitly promotes the user to System Administrator, overriding the standard role.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Standard Role (If not admin)</label>
+                        <select name="role" class="form-select bg-light border-0 shadow-none" asp-items="ViewBag.Roles" required></select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" required />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Create User</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

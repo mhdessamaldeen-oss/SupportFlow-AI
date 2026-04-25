@@ -1,0 +1,1540 @@
+@model List<AISupportAnalysisPlatform.Models.CustomTheme>
+@{
+    ViewData["Title"] = "Global Configuration";
+    var currentThemeId = ViewBag.CurrentThemeId as string ?? "1";
+    var activeTab = ViewBag.ActiveTab as string ?? "themes";
+    var activeProvider = ViewBag.DbActiveProvider as AiProviderType? ?? AiProviderType.DockerLocal;
+    var currentProviderLabel = activeProvider switch
+    {
+        AiProviderType.OpenAI => "OpenAI / ChatGPT",
+        AiProviderType.Cloud => "Cloud AI",
+        AiProviderType.Gemini => "Google Gemini",
+        AiProviderType.LocalAI => "LocalAI",
+        _ => "Docker Engine"
+    };
+    var sqlServerCandidates = ViewBag.SqlServerCandidates as List<AISupportAnalysisPlatform.Controllers.Admin.SettingsController.SqlServerCandidateInfo> ?? new();
+    var sqlServerProbe = ViewBag.SqlServerProbe as AISupportAnalysisPlatform.Controllers.Admin.SettingsController.SqlServerProbeResult;
+    var dbServerName = ViewBag.DbServerName as string ?? "";
+    var dbDatabaseName = ViewBag.DbDatabaseName as string ?? "";
+    var dbUserName = ViewBag.DbUserName as string ?? "";
+    var useSqlAuthentication = ViewBag.DbUseSqlAuthentication is bool useSqlAuth && useSqlAuth;
+    var trustServerCertificate = ViewBag.DbTrustServerCertificate is bool trustServerCert ? trustServerCert : true;
+    var encryptConnection = ViewBag.DbEncryptConnection is bool encryptConn && encryptConn;
+}
+
+<div class="row mb-4 animate__animated animate__fadeIn">
+    <div class="col-lg-8">
+        <h2 class="fw-bold mb-1">Global Configuration</h2>
+        <p class="text-muted small">Platform settings, AI provider management, and visual identity orchestration</p>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 animate__animated animate__fadeInDown" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="@Loc.Get("Close")"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger border-0 shadow-sm alert-dismissible fade show mb-4 animate__animated animate__fadeInDown" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="@Loc.Get("Close")"></button>
+    </div>
+}
+
+<!-- ═══════════════ PRIMARY TABS ═══════════════ -->
+<ul class="nav nav-pills mb-4 gap-2" id="settingsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link settings-tab-btn @(activeTab == "themes" ? "active" : "")" data-bs-toggle="pill" data-bs-target="#tab-themes" type="button" role="tab">
+            <i class="bi bi-palette-fill @(Loc.IsRtl ? "ms-2" : "me-2")"></i>@Loc.Get("ThemeEngine")
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link settings-tab-btn @(activeTab == "ai" ? "active" : "")" data-bs-toggle="pill" data-bs-target="#tab-ai" type="button" role="tab">
+            <i class="bi bi-cpu-fill @(Loc.IsRtl ? "ms-2" : "me-2")"></i>@Loc.Get("AiProviderConfig")
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link settings-tab-btn @(activeTab == "chatbot" ? "active" : "")" data-bs-toggle="pill" data-bs-target="#tab-chatbot" type="button" role="tab">
+            <i class="bi bi-robot @(Loc.IsRtl ? "ms-2" : "me-2")"></i>Chatbot AI
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link settings-tab-btn @(activeTab == "data" ? "active" : "")" data-bs-toggle="pill" data-bs-target="#tab-data" type="button" role="tab">
+            <i class="bi bi-database-fill-gear @(Loc.IsRtl ? "ms-2" : "me-2")"></i>@Loc.Get("DataTab")
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="settingsTabContent">
+
+<!-- ═══════════════ THEMES TAB ═══════════════ -->
+<div class="tab-pane fade @(activeTab == "themes" ? "show active" : "")" id="tab-themes" role="tabpanel">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg mb-5">
+                <div class="card-header border-0 pb-0 pt-4 px-4 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-uppercase small ls-1 text-muted">Identity Repository</h5>
+                        <p class="text-muted small mb-0">Select or refine foundational visual signatures</p>
+                    </div>
+                    <button class="btn btn-primary btn-pill shadow-sm" onclick="openArchitect('new')">
+                        <i class="bi bi-plus-lg me-2"></i>Create New Architecture
+                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        @foreach (var theme in Model)
+                        {
+                            <div class="col-md-6 col-xl-4">
+                                <div class="theme-card card h-100 border-0 shadow-sm transition-all @(currentThemeId == theme.Id.ToString() ? "active-theme" : "")" 
+                                     style="background: @theme.BgCard !important; border: 1px solid @theme.BorderColor !important;">
+                                    <div class="card-body p-3 text-center">
+                                        <div class="theme-preview mb-3 rounded-3 shadow-md mx-auto" 
+                                             style="background: @theme.BgMain; border: 2px solid @theme.PrimaryColor; width: 100px; height: 60px; position: relative; overflow: hidden;">
+                                            <div style="position: absolute; top: 6px; inset-inline-start: 6px; width: 20px; height: 3px; background: @theme.PrimaryColor; border-radius: 1px;"></div>
+                                            <div style="position: absolute; top: 12px; inset-inline-start: 6px; width: 10px; height: 3px; background: @theme.TextMuted; border-radius: 1px;"></div>
+                                            <div style="position: absolute; bottom: 10px; inset-inline-end: 10px; width: 20px; height: 20px; background: @theme.PrimaryColor; border-radius: 4px; opacity: 0.2;"></div>
+                                        </div>
+                                        <h6 class="fw-bold mb-2" style="color: @theme.TextMain">@theme.Name</h6>
+                                        <div class="d-flex gap-1 justify-content-center mb-3">
+                                            <form asp-action="UpdateTheme" method="post">
+                                                <input type="hidden" name="themeId" value="@theme.Id" />
+                                                @if (currentThemeId == theme.Id.ToString())
+                                                {
+                                                    <button type="button" class="btn btn-success btn-sm fw-bold px-3 disabled">Active</button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm fw-bold px-3" style="border-color: @theme.PrimaryColor; color: @theme.PrimaryColor">Apply</button>
+                                                }
+                                            </form>
+                                            <button class="btn btn-outline-secondary btn-sm fw-bold px-2 refine-btn" 
+                                                    data-theme-id="@theme.Id"
+                                                    data-theme-name="@theme.Name"
+                                                    data-theme-primary="@theme.PrimaryColor"
+                                                    data-theme-bgmain="@theme.BgMain"
+                                                    data-theme-bgcard="@theme.BgCard"
+                                                    data-theme-bgsidebar="@theme.BgSidebar"
+                                                    data-theme-bgheader="@theme.BgHeader"
+                                                    data-theme-textmain="@theme.TextMain"
+                                                    data-theme-textmuted="@theme.TextMuted"
+                                                    data-theme-border="@theme.BorderColor"
+                                                    data-theme-issystem="@theme.IsSystemTheme.ToString().ToLower()"
+                                                    data-theme-sysid="@theme.SystemIdentifier"
+                                                    onclick="openArchitect(this)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            @if (theme.IsSystemTheme)
+                                            {
+                                                <form asp-action="ResetTheme" method="post" class="d-inline">
+                                                    <input type="hidden" name="id" value="@theme.Id" />
+                                                    <button type="submit" class="btn btn-outline-warning btn-sm fw-bold px-2" title="Reset to Factory Directive">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="DeleteTheme" method="post" class="d-inline" onsubmit="return confirm('Confirm categorical purge of this architecture?');">
+                                                    <input type="hidden" name="id" value="@theme.Id" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm fw-bold px-2" title="Purge Architecture">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Architect Studio Panel -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-lg sticky-top" style="top: 100px;">
+                <div class="card-header border-0 pt-4 px-4 bg-transparent">
+                    <h5 class="fw-bold mb-0 text-uppercase small ls-1 text-muted" id="studio-title">Architect Studio</h5>
+                    <p class="text-muted small">Surgically refine platform identity tokens</p>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    <form id="architectForm" asp-action="SaveTheme" method="post">
+                        <input type="hidden" id="theme-id" name="Id" value="0" />
+                        <input type="hidden" name="IsSystemTheme" id="theme-issystem" value="false" />
+                        <input type="hidden" name="SystemIdentifier" id="theme-sysid" value="" />
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase ls-1">Architecture Name</label>
+                            <input type="text" class="form-control bg-transparent shadow-none" style="border-color: var(--border-color) !important; color: var(--text-main) !important;" id="theme-name" name="Name" required />
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Primary Accent</label>
+                                <input type="color" class="form-control form-control-color w-100 bg-transparent" style="border-color: var(--border-color) !important;" id="theme-primary" name="PrimaryColor" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Main Background</label>
+                                <input type="color" class="form-control form-control-color w-100 bg-transparent" style="border-color: var(--border-color) !important;" id="theme-bgmain" name="BgMain" />
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Card Surface</label>
+                                <input type="color" class="form-control form-control-color w-100 bg-transparent" style="border-color: var(--border-color) !important;" id="theme-bgcard" name="BgCard" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Sidebar Surface</label>
+                                <input type="color" class="form-control form-control-color w-100 bg-transparent" style="border-color: var(--border-color) !important;" id="theme-bgsidebar" name="BgSidebar" />
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Header Surface</label>
+                                <input type="color" class="form-control form-control-color w-100 bg-transparent" style="border-color: var(--border-color) !important;" id="theme-bgheader" name="BgHeader" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Border Token</label>
+                                <input type="color" class="form-control form-control-color w-100 bg-transparent" style="border-color: var(--border-color) !important;" id="theme-border" name="BorderColor" />
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Primary Text</label>
+                                <input type="color" class="form-control form-control-color w-100 bg-transparent" style="border-color: var(--border-color) !important;" id="theme-textmain" name="TextMain" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Muted Text</label>
+                                <input type="color" class="form-control form-control-color w-100 bg-transparent" style="border-color: var(--border-color) !important;" id="theme-textmuted" name="TextMuted" />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 shadow-sm">
+                            <i class="bi bi-cpu-fill me-2"></i>Apply Architectural Change
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary w-100 mt-2" onclick="openArchitect('new')">
+                            Clear Editor
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ AI PROVIDER TAB ═══════════════ -->
+<div class="tab-pane fade @(activeTab == "ai" ? "show active" : "")" id="tab-ai" role="tabpanel">
+
+    <div class="ai-config-shell">
+        <div class="ai-config-hero card border-0 shadow-lg mb-4 overflow-hidden">
+            <div class="card-body p-4 p-xl-5">
+                <div class="row g-4 align-items-start">
+                    <div class="col-xl-7">
+                        <div class="d-inline-flex align-items-center gap-2 ai-config-eyebrow mb-3">
+                            <span class="ai-config-dot"></span>
+                            <span>AI Configuration Console</span>
+                        </div>
+                        <h4 class="fw-bold mb-2">Configure providers, models, and runtime behavior from one control surface.</h4>
+                        <p class="text-muted mb-0">Connection details, model names, and advanced execution parameters are managed from the app UI and stored in the database instead of application setting files.</p>
+                    </div>
+                    <div class="col-xl-5">
+                        <div class="ai-config-summary">
+                            <div class="ai-summary-tile">
+                                <div class="ai-summary-label">Active provider</div>
+                                <div class="ai-summary-value">@currentProviderLabel</div>
+                            </div>
+                            <div class="ai-summary-tile">
+                                <div class="ai-summary-label">Configuration source</div>
+                                <div class="ai-summary-value">Database-backed</div>
+                            </div>
+                            <div class="ai-summary-tile">
+                                <div class="ai-summary-label">Admin workflow</div>
+                                <div class="ai-summary-value">Configure, validate, then activate</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-provider-switch mt-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1"><i class="bi bi-broadcast-pin me-2" style="color: var(--primary-color);"></i>Provider Workspace</h5>
+                            <p class="text-muted small mb-0">Select the provider you want to configure, validate, or make active.</p>
+                        </div>
+                        <span class="ai-config-badge">
+                            <i class="bi bi-shield-lock me-2"></i>Secrets are stored in system settings
+                        </span>
+                    </div>
+                    <ul class="nav nav-pills gap-2 flex-wrap" id="providerTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="btn provider-selector-btn @(activeProvider == AiProviderType.DockerLocal ? "active" : "")" data-bs-toggle="tab" data-bs-target="#provider-docker" type="button" role="tab">
+                                <i class="bi bi-hdd-network-fill me-2 fs-5"></i><span>Docker Engine</span>
+                                @if (activeProvider == AiProviderType.DockerLocal) { <span class="badge bg-light text-dark ms-2 smaller">Active</span> }
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="btn provider-selector-btn @(activeProvider == AiProviderType.OpenAI ? "active" : "")" data-bs-toggle="tab" data-bs-target="#provider-openai" type="button" role="tab">
+                                <i class="bi bi-cpu me-2 fs-5"></i><span>OpenAI / ChatGPT</span>
+                                @if (activeProvider == AiProviderType.OpenAI) { <span class="badge bg-light text-dark ms-2 smaller">Active</span> }
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="btn provider-selector-btn @(activeProvider == AiProviderType.Cloud ? "active" : "")" data-bs-toggle="tab" data-bs-target="#provider-cloud" type="button" role="tab">
+                                <i class="bi bi-cloud-check-fill me-2 fs-5"></i><span>Cloud AI</span>
+                                @if (activeProvider == AiProviderType.Cloud) { <span class="badge bg-light text-dark ms-2 smaller">Active</span> }
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="btn provider-selector-btn @(activeProvider == AiProviderType.Gemini ? "active" : "")" data-bs-toggle="tab" data-bs-target="#provider-gemini" type="button" role="tab">
+                                <i class="bi bi-stars me-2 fs-5"></i><span>Google Gemini</span>
+                                @if (activeProvider == AiProviderType.Gemini) { <span class="badge bg-light text-dark ms-2 smaller">Active</span> }
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="btn provider-selector-btn @(activeProvider == AiProviderType.LocalAI ? "active" : "")" data-bs-toggle="tab" data-bs-target="#provider-localai" type="button" role="tab">
+                                <i class="bi bi-diagram-2-fill me-2 fs-5"></i><span>LocalAI</span>
+                                @if (activeProvider == AiProviderType.LocalAI) { <span class="badge bg-light text-dark ms-2 smaller">Active</span> }
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="providerTabContent">
+        
+        <!-- ──── DIRECT DOCKER ENGINE TAB ──── -->
+        <div class="tab-pane fade @(activeProvider == AiProviderType.DockerLocal ? "show active" : "")" id="provider-docker" role="tabpanel">
+            <div class="card border-0 shadow-lg border-top-0 rounded-top-0">
+                <div class="card-header border-0 pb-0 pt-4 px-4 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-uppercase small ls-1 text-muted">Direct Docker Engine</h5>
+                        <p class="text-muted small mb-0">Manage local standalone AI containers</p>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-success-soft text-success border border-success-subtle px-3 py-2 rounded-pill">
+                            <i class="bi bi-broadcast me-2"></i>Docker Daemon
+                        </span>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="validateProvider('DockerLocal', this)">
+                            <i class="bi bi-wifi me-1"></i>Test
+                        </button>
+                        @if (activeProvider != AiProviderType.DockerLocal)
+                        {
+                            <form asp-action="SetActiveProvider" method="post" class="m-0">
+                                <input type="hidden" name="providerType" value="DockerLocal" />
+                                <button type="submit" class="btn btn-primary btn-sm shadow-sm">
+                                    <i class="bi bi-check-circle me-1"></i>Set as Active
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="SaveDockerLocalConfig" method="post">
+                        <div class="row g-4 mb-4">
+                            <div class="col-lg-12">
+                                <h6 class="fw-bold mb-3"><i class="bi bi-gear-fill me-2" style="color: var(--primary-color);"></i>Engine Parameters</h6>
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Base URL</label>
+                                        <input type="text" class="form-control bg-transparent shadow-none" name="baseUrl" value="@ViewBag.DbDockerBaseUrl" placeholder="DOCKER_NATIVE or custom URL" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="rounded-3 px-3 py-2 small" style="background: rgba(15, 23, 42, 0.03) !important; border: 1px solid rgba(148, 163, 184, 0.18) !important; color: var(--text-muted) !important;">
+                                            <i class="bi bi-info-circle me-2"></i>Default model selection is managed below from <strong>Installed Models</strong>. The engine form only stores runtime parameters.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Timeout (Sec)</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="timeoutSeconds" value="@ViewBag.DbDockerTimeoutSeconds" min="5" max="600" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Temperature</label>
+                                        <input type="number" step="0.1" class="form-control bg-transparent shadow-none" name="temperature" value="@ViewBag.DbDockerTemperature" min="0" max="2" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Max Prompt Chars</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="maxPromptChars" value="@ViewBag.DbDockerMaxPromptChars" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Max Prompt Tokens</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="maxPromptTokens" value="@ViewBag.DbDockerMaxPromptTokens" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Ctx Size (NumCtx)</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="numCtx" value="@ViewBag.DbDockerNumCtx" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Num Predict</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="numPredict" value="@ViewBag.DbDockerNumPredict" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end mt-3">
+                                    <button type="submit" class="btn btn-primary shadow-sm">
+                                        <i class="bi bi-save me-2"></i>Save Engine Configuration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <hr style="border-color: var(--border-color) !important;" class="my-4">
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-8">
+                            <div class="mb-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1 mb-0">Installed Models</label>
+                                    <div class="small mt-1" style="color: var(--text-muted) !important;">Choose one installed Docker Model as the runtime default. This list is read from Docker Models, not generic container images.</div>
+                                </div>
+                                <button class="btn btn-link btn-sm text-decoration-none shadow-none p-0" onclick="loadModels()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh Repository
+                                </button>
+                            </div>
+                            <div id="models-container" class="row g-3">
+                                <div class="col-12 text-center py-5">
+                                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                                    <p class="text-muted small mt-2">Connecting to Docker Engine...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 border-start" style="border-color: var(--border-color) !important;">
+                            <label class="form-label small fw-bold text-uppercase ls-1" style="color: var(--text-muted) !important;">Provision New Model</label>
+                            <p class="small mb-3" style="color: var(--text-muted) !important;">Pull either a Docker model name or a container image. Use full Docker model names like <code>hf.co/microsoft/Phi-3-mini-4k-instruct</code> or image names like <code>vllm/vllm-openai:latest</code>.</p>
+                            <div class="input-group mb-3">
+                                <input type="text" id="new-model-name" class="form-control bg-transparent shadow-none" placeholder="hf.co/... model name or repo/image:tag" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                <button class="btn btn-primary" type="button" id="pull-btn" onclick="pullModel()">
+                                    <i class="bi bi-cloud-download-fill"></i>
+                                </button>
+                            </div>
+                            <div class="small mb-3" style="color: var(--text-muted) !important;">
+                                <i class="bi bi-search me-1"></i>If a short alias like <code>phi3:mini</code> fails, run <code>docker model search phi3</code> and use the full name returned by Docker.
+                            </div>
+                            <div class="p-3 rounded-3 mb-3" style="background: rgba(15, 23, 42, 0.03) !important; border: 1px solid rgba(148, 163, 184, 0.18) !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="small fw-bold text-uppercase mb-0" style="color: var(--primary-color) !important;">
+                                        <i class="bi bi-stars me-2"></i>Ready-To-Paste Examples
+                                    </h6>
+                                    <span class="small text-muted">Top local model picks</span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/llama3.2</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/llama3.2')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/llama3.2')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/llama3.3</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/llama3.3')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/llama3.3')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/qwen3</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/qwen3')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/qwen3')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/qwen3-coder</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/qwen3-coder')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/qwen3-coder')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/qwen2.5</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/qwen2.5')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/qwen2.5')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/gemma3</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/gemma3')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/gemma3')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/gemma4</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/gemma4')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/gemma4')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/mistral</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/mistral')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/mistral')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/deepseek-r1-distill-llama</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/deepseek-r1-distill-llama')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/deepseek-r1-distill-llama')">Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                        <code class="small">ai/smollm2:360M-Q4_K_M</code>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setNewModelName('ai/smollm2:360M-Q4_K_M')">Use</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyModelExample('ai/smollm2:360M-Q4_K_M')">Copy</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="pull-progress" class="display-none">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small" style="color: var(--text-muted) !important;" id="pull-status">Downloading...</span>
+                                    <span class="small fw-bold" style="color: var(--primary-color) !important;" id="pull-percentage">0%</span>
+                                </div>
+                                <div class="progress rounded-pill bg-transparent" style="height: 6px; border: 1px solid var(--border-color) !important;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background: var(--primary-color) !important;"></div>
+                                </div>
+                                <div id="pull-log-container" class="mt-3 p-2 rounded-3" style="background: rgba(0,0,0,0.02) !important; border: 1px dashed var(--border-color) !important; max-height: 120px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-main) !important;">
+                                    <div style="color: var(--text-muted) !important;">[CLI] Waiting for stream...</div>
+                                </div>
+                            </div>
+                            <div class="mt-4 p-3 rounded-3" style="background: rgba(99, 102, 241, 0.05) !important; border: 1px solid rgba(99, 102, 241, 0.2) !important;">
+                                <h6 class="small fw-bold text-uppercase mb-2" style="color: var(--primary-color) !important;"><i class="bi bi-info-circle me-2"></i>Performance Guide</h6>
+                                <ul class="smaller ps-3 mb-0" style="color: var(--text-muted) !important;">
+                                    <li><strong>3B Models:</strong> Fast responsive analysis (Recommended)</li>
+                                    <li><strong>7B-8B Models:</strong> Higher accuracy, slower processing</li>
+                                    <li><strong>14B+ Models:</strong> High-precision, requires 16GB+ VRAM</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top p-4" style="border-color: var(--border-color) !important;">
+                    <div class="row align-items-center">
+                        <div class="col-lg-8">
+                            <h6 class="fw-bold mb-1"><i class="bi bi-container-gpu me-2"></i>Infrastructure Setup (Docker)</h6>
+                            <p class="text-muted small mb-0">Run inference engines directly as background containers on this host network.</p>
+                        </div>
+                        <div class="col-lg-4 text-lg-end">
+                            <button class="btn btn-sm btn-outline-info fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#dockerSetupGuide">
+                                <i class="bi bi-info-circle me-1"></i>Show Setup Commands
+                            </button>
+                        </div>
+                    </div>
+                    <div class="collapse mt-3" id="dockerSetupGuide">
+                        <div class="p-3 rounded-3" style="background: rgba(0,0,0,0.05) !important; border: 1px solid var(--border-color) !important;">
+                            <label class="form-label small fw-bold text-uppercase ls-1 text-info">Win/Linux Docker Command</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <code class="flex-grow-1 p-2 rounded bg-black text-info small">docker pull vllm/vllm-openai:latest</code>
+                                <button class="btn btn-sm btn-secondary" onclick="copyToClipboard('docker pull vllm/vllm-openai:latest')">Copy</button>
+                            </div>
+                            <div class="alert alert-info border-0 small mb-0">
+                                <i class="bi bi-info-square-fill me-2"></i><strong>Note:</strong> A <code>docker-compose.yml</code> file has been established in your project root for multi-engine orchestration.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ──── OPENAI / CHATGPT TAB ──── -->
+        <div class="tab-pane fade @(activeProvider == AiProviderType.OpenAI ? "show active" : "")" id="provider-openai" role="tabpanel">
+            <div class="card border-0 shadow-lg border-top-0 rounded-top-0">
+                <div class="card-header border-0 pb-0 pt-4 px-4 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-uppercase small ls-1 text-muted">OpenAI / ChatGPT Configuration</h5>
+                        <p class="text-muted small mb-0">Connect to OpenAI's GPT models for cloud-powered ticket analysis</p>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="validateProvider('OpenAI', this)">
+                            <i class="bi bi-wifi me-1"></i>Test Connection
+                        </button>
+                        @if (activeProvider != AiProviderType.OpenAI)
+                        {
+                            <form asp-action="SetActiveProvider" method="post" class="m-0">
+                                <input type="hidden" name="providerType" value="OpenAI" />
+                                <button type="submit" class="btn btn-primary btn-sm shadow-sm">
+                                    <i class="bi bi-check-circle me-1"></i>Set as Active
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="SaveOpenAiConfig" method="post">
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">API Key</label>
+                                    <div class="input-group">
+                                        <input type="password" id="openai-apikey" class="form-control bg-transparent shadow-none" name="apiKey" autocomplete="off"
+                                               value="@ViewBag.DbOpenAiKey" placeholder="sk-..."
+                                               style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('openai-apikey', this)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small" style="color: var(--text-muted) !important;">
+                                        <i class="bi bi-shield-lock me-1"></i>Stored securely in the database. Get your key from <a href="https://platform.openai.com/api-keys" target="_blank" class="text-decoration-none">platform.openai.com</a>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">Model</label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="model"
+                                           value="@ViewBag.DbOpenAiModel" placeholder="gpt-4o-mini"
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">Base URL</label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="baseUrl"
+                                           value="@ViewBag.DbOpenAiBaseUrl" placeholder="https://api.openai.com/v1"
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    <div class="form-text small" style="color: var(--text-muted) !important;">
+                                        Default: https://api.openai.com/v1 — Change for compatible providers
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Timeout</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="timeoutSeconds" value="@ViewBag.DbOpenAiTimeoutSeconds" min="5" max="600" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Max Tokens</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="maxTokens" value="@ViewBag.DbOpenAiMaxTokens" min="1" max="32000" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Temperature</label>
+                                        <input type="number" step="0.1" class="form-control bg-transparent shadow-none" name="temperature" value="@ViewBag.DbOpenAiTemperature" min="0" max="2" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Max Prompt Chars</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="maxPromptChars" value="@ViewBag.DbOpenAiMaxPromptChars" min="1000" max="100000" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Organization ID</label>
+                                        <input type="text" class="form-control bg-transparent shadow-none" name="organizationId" value="@ViewBag.DbOpenAiOrganizationId" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Project ID</label>
+                                        <input type="text" class="form-control bg-transparent shadow-none" name="projectId" value="@ViewBag.DbOpenAiProjectId" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="p-4 rounded-3 mb-4" style="background: rgba(99, 102, 241, 0.05) !important; border: 1px solid rgba(99, 102, 241, 0.2) !important;">
+                                    <h6 class="small fw-bold text-uppercase mb-3" style="color: var(--primary-color) !important;">
+                                        <i class="bi bi-lightbulb-fill me-2"></i>Runtime Notes
+                                    </h6>
+                                    <table class="table table-sm table-hover mb-0 align-middle" style="color: var(--text-main) !important;">
+                                        <thead>
+                                            <tr style="border-color: var(--border-color) !important;">
+                                                <th class="small fw-bold" style="color: var(--text-muted) !important;">Topic</th>
+                                                <th class="small fw-bold" style="color: var(--text-muted) !important;">Default</th>
+                                                <th class="small fw-bold" style="color: var(--text-muted) !important;">Note</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr style="border-color: var(--border-color) !important;">
+                                                <td class="small">Chat model</td>
+                                                <td class="small">App default</td>
+                                                <td class="small">No saved model picker in admin UI</td>
+                                            </tr>
+                                            <tr style="border-color: var(--border-color) !important;">
+                                                <td class="small">Embedding model</td>
+                                                <td class="small">Provider default</td>
+                                                <td class="small">Configure it in the provider stack, not here</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="alert border-0 small mb-0 py-2" style="background: rgba(245,158,11,0.1) !important; color: var(--text-main) !important; border: 1px solid rgba(245,158,11,0.3) !important;">
+                                    <i class="bi bi-exclamation-triangle-fill me-2" style="color: #f59e0b;"></i>
+                                    <strong>Important:</strong> OpenAI API calls incur usage charges on your OpenAI account.
+                                </div>
+                            </div>
+                        </div>
+                        <hr style="border-color: var(--border-color) !important;" class="my-4">
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary shadow-sm">
+                                <i class="bi bi-save me-2"></i>Save OpenAI Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ──── CLOUD AI TAB ──── -->
+        <div class="tab-pane fade @(activeProvider == AiProviderType.Cloud ? "show active" : "")" id="provider-cloud" role="tabpanel">
+            <div class="card border-0 shadow-lg border-top-0 rounded-top-0">
+                <div class="card-header border-0 pb-0 pt-4 px-4 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-uppercase small ls-1 text-muted">Cloud AI Configuration</h5>
+                        <p class="text-muted small mb-0">Connect to Azure OpenAI, custom endpoints, or any hosted AI service</p>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="validateProvider('Cloud', this)">
+                            <i class="bi bi-wifi me-1"></i>Test Connection
+                        </button>
+                        @if (activeProvider != AiProviderType.Cloud)
+                        {
+                            <form asp-action="SetActiveProvider" method="post" class="m-0">
+                                <input type="hidden" name="providerType" value="Cloud" />
+                                <button type="submit" class="btn btn-primary btn-sm shadow-sm">
+                                    <i class="bi bi-check-circle me-1"></i>Set as Active
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="SaveCloudConfig" method="post">
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">Endpoint URL</label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="endpoint"
+                                           value="@ViewBag.DbCloudEndpoint" placeholder="https://your-resource.openai.azure.com"
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    <div class="form-text small" style="color: var(--text-muted) !important;">
+                                        Full base URL of your cloud AI service
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">API Key</label>
+                                    <div class="input-group">
+                                        <input type="password" id="cloud-apikey" class="form-control bg-transparent shadow-none" name="apiKey" autocomplete="off"
+                                               value="@ViewBag.DbCloudApiKey" placeholder="Your API key..."
+                                               style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('cloud-apikey', this)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small" style="color: var(--text-muted) !important;">
+                                        <i class="bi bi-shield-lock me-1"></i>Stored securely in the database
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">Model / Deployment Name</label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="model"
+                                           value="@ViewBag.DbCloudModel" placeholder="gpt-4o, my-custom-model..."
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">Deployment Name <span class="text-muted fw-normal">(Azure OpenAI only)</span></label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="deploymentName"
+                                           value="@ViewBag.DbCloudDeployment" placeholder="Optional — for Azure OpenAI deployments"
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    <div class="form-text small" style="color: var(--text-muted) !important;">
+                                        Leave empty for standard OpenAI-compatible endpoints
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Timeout</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="timeoutSeconds" value="@ViewBag.DbCloudTimeoutSeconds" min="5" max="600" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Max Tokens</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="maxTokens" value="@ViewBag.DbCloudMaxTokens" min="1" max="32000" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Temperature</label>
+                                        <input type="number" step="0.1" class="form-control bg-transparent shadow-none" name="temperature" value="@ViewBag.DbCloudTemperature" min="0" max="2" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Max Prompt Chars</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="maxPromptChars" value="@ViewBag.DbCloudMaxPromptChars" min="1000" max="100000" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">API Version</label>
+                                        <input type="text" class="form-control bg-transparent shadow-none" name="apiVersion" value="@ViewBag.DbCloudApiVersion" placeholder="2024-02-01" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Auth Header</label>
+                                        <input type="text" class="form-control bg-transparent shadow-none" name="authHeaderName" value="@ViewBag.DbCloudAuthHeaderName" placeholder="api-key" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" name="useBearerToken" value="true" id="cloud-use-bearer" @(ViewBag.DbCloudUseBearerToken == true ? "checked" : null)>
+                                            <label class="form-check-label small" for="cloud-use-bearer">
+                                                Send API key as Bearer token
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-3 rounded-3" style="background: rgba(59, 130, 246, 0.05) !important; border: 1px solid rgba(59, 130, 246, 0.2) !important;">
+                                    <h6 class="small fw-bold text-uppercase mb-2" style="color: #3b82f6;">
+                                        <i class="bi bi-cloud-check me-2"></i>Supported Services
+                                    </h6>
+                                    <ul class="smaller ps-3 mb-0" style="color: var(--text-muted) !important;">
+                                        <li>Azure OpenAI Service</li>
+                                        <li>Self-hosted LLM endpoints</li>
+                                        <li>Any OpenAI-compatible API</li>
+                                        <li>Custom AI gateways</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <hr style="border-color: var(--border-color) !important;" class="my-4">
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary shadow-sm">
+                                <i class="bi bi-save me-2"></i>Save Cloud Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ──── GOOGLE GEMINI TAB ──── -->
+        <div class="tab-pane fade @(activeProvider == AiProviderType.Gemini ? "show active" : "")" id="provider-gemini" role="tabpanel">
+            <div class="card border-0 shadow-lg border-top-0 rounded-top-0">
+                <div class="card-header border-0 pb-0 pt-4 px-4 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-uppercase small ls-1 text-muted">Google Gemini Configuration</h5>
+                        <p class="text-muted small mb-0">High-performance AI with native support for multi-modal analysis</p>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="validateProvider('Gemini', this)">
+                            <i class="bi bi-wifi me-1"></i>Test Connection
+                        </button>
+                        @if (activeProvider != AiProviderType.Gemini)
+                        {
+                            <form asp-action="SetActiveProvider" method="post" class="m-0">
+                                <input type="hidden" name="providerType" value="Gemini" />
+                                <button type="submit" class="btn btn-primary btn-sm shadow-sm">
+                                    <i class="bi bi-check-circle me-1"></i>Set as Active
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="SaveGeminiConfig" method="post">
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">Model</label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="model"
+                                           value="@ViewBag.DbGeminiModel" placeholder="gemini-1.5-flash"
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                </div>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Temperature</label>
+                                        <input type="number" step="0.1" class="form-control bg-transparent shadow-none" name="temperature" value="@ViewBag.DbGeminiTemperature" min="0" max="2" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Max Tokens</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="maxTokens" value="@ViewBag.DbGeminiMaxTokens" min="1" max="32000" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">API Key</label>
+                                    <div class="input-group">
+                                        <input type="password" id="gemini-apikey" class="form-control bg-transparent shadow-none" name="apiKey" autocomplete="off"
+                                               value="@ViewBag.DbGeminiKey" placeholder="Your Gemini API key..."
+                                               style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('gemini-apikey', this)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small" style="color: var(--text-muted) !important;">
+                                        Get your key from <a href="https://aistudio.google.com/" target="_blank" class="text-info">Google AI Studio</a>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-start">
+                                    <button type="submit" class="btn btn-primary shadow-sm">
+                                        <i class="bi bi-save me-2"></i>Save Gemini Configuration
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="p-4 rounded-3" style="background: rgba(var(--primary-color-rgb), 0.05) !important; border: 1px solid rgba(var(--primary-color-rgb), 0.2) !important;">
+                                    <h6 class="small fw-bold text-uppercase mb-3" style="color: var(--primary-color);">
+                                        <i class="bi bi-info-circle-fill me-2"></i>Gemini Advantages
+                                    </h6>
+                                    <ul class="span small mb-0 text-muted ps-3">
+                                        <li class="mb-2"><strong>Massive Context:</strong> Up to 1M+ tokens for analyzing long ticket histories.</li>
+                                        <li class="mb-2"><strong>Flash Speed:</strong> Sub-second response times for instant categorization.</li>
+                                        <li><strong>Semantic Search:</strong> Native embedding support for finding related cases.</li>
+                                    </ul>
+                                </div>
+                                <div class="alert alert-info border-0 mt-3 small">
+                                    <i class="bi bi-info-circle me-1"></i> Gemini 1.5 Flash is highly recommended for high-volume support centers due to its balance of speed and cost.
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ──── LOCALAI (BETTER ENGINE) TAB ──── -->
+        <div class="tab-pane fade @(activeProvider == AiProviderType.LocalAI ? "show active" : "")" id="provider-localai" role="tabpanel">
+            <div class="card border-0 shadow-lg border-top-0 rounded-top-0">
+                <div class="card-header border-0 pb-0 pt-4 px-4 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-uppercase small ls-1 text-muted">LocalAI (OpenAI-Compatible Engine)</h5>
+                        <p class="text-muted small mb-0">High-performance local alternative with full OpenAI API compatibility</p>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="validateProvider('LocalAI', this)">
+                            <i class="bi bi-wifi me-1"></i>Test Connection
+                        </button>
+                        @if (activeProvider != AiProviderType.LocalAI)
+                        {
+                            <form asp-action="SetActiveProvider" method="post" class="m-0">
+                                <input type="hidden" name="providerType" value="LocalAI" />
+                                <button type="submit" class="btn btn-primary btn-sm shadow-sm">
+                                    <i class="bi bi-check-circle me-1"></i>Set as Active
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="SaveLocalAiConfig" method="post">
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">LocalAI Base URL</label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="baseUrl"
+                                           value="@ViewBag.DbLocalAiBaseUrl" placeholder="http://localhost:8080/v1"
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    <div class="form-text small" style="color: var(--text-muted) !important;">
+                                        Default for LocalAI: http://localhost:8080/v1
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">Model</label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="model"
+                                           value="@ViewBag.DbLocalAiModel" placeholder="your-local-model"
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase ls-1">API Key / Password</label>
+                                    <input type="text" class="form-control bg-transparent shadow-none" name="apiKey"
+                                           value="@ViewBag.DbLocalAiApiKey" placeholder="ignored or custom token"
+                                           style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                </div>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Timeout</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="timeoutSeconds" value="@ViewBag.DbLocalAiTimeoutSeconds" min="5" max="600" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Temperature</label>
+                                        <input type="number" step="0.1" class="form-control bg-transparent shadow-none" name="temperature" value="@ViewBag.DbLocalAiTemperature" min="0" max="2" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Max Prompt Chars</label>
+                                        <input type="number" class="form-control bg-transparent shadow-none" name="maxPromptChars" value="@ViewBag.DbLocalAiMaxPromptChars" min="1000" max="100000" style="border-color: var(--border-color) !important; color: var(--text-main) !important;">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary shadow-sm">
+                                        <i class="bi bi-save me-2"></i>Save LocalAI Configuration
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="card border-info-subtle" style="background: rgba(13, 202, 240, 0.05) !important;">
+                                    <div class="card-body">
+                                        <h6 class="fw-bold text-info mb-3"><i class="bi bi-rocket-takeoff-fill me-2"></i>Why use LocalAI?</h6>
+                                        <ul class="span small mb-0 text-muted">
+                                            <li class="mb-2"><strong>Drop-in Replacement:</strong> Uses the exact same API as OpenAI, making integration seamless.</li>
+                                            <li class="mb-2"><strong>Architecture Agnostic:</strong> Supports GGML, GGUF, and more.</li>
+                                            <li><strong>Advanced Features:</strong> Supports images, audio, and function calling locally.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-transparent border-top p-4" style="border-color: var(--border-color) !important;">
+                    <div class="row align-items-center mb-3">
+                        <div class="col-lg-8">
+                            <h6 class="fw-bold mb-1"><i class="bi bi-terminal-fill me-2"></i>One-Click Setup (Docker)</h6>
+                            <p class="text-muted small mb-0">Launch LocalAI immediately via Docker container.</p>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-3" style="background: rgba(0,0,0,0.05) !important; border: 1px solid var(--border-color) !important;">
+                        <code class="d-block p-2 mb-2 rounded bg-black text-info small">docker run -p 8080:8080 --name local-ai -ti localai/localai:latest --models-path /models --context-size 700 --threads 4</code>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted"><i class="bi bi-info-circle me-1"></i>Default port: 8080</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('docker run -p 8080:8080 --name local-ai -ti localai/localai:latest --models-path /models --context-size 700 --threads 4')">Copy Command</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ═══════════════ CHATBOT AI TAB ═══════════════ -->
+<div class="tab-pane fade @(activeTab == "chatbot" ? "show active" : "")" id="tab-chatbot" role="tabpanel">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg mb-4">
+                <div class="card-header border-0 pb-0 pt-4 px-4 bg-transparent d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-1"><i class="bi bi-robot me-2" style="color: var(--primary-color);"></i>Copilot Tool Registry</h5>
+                        <p class="text-muted small mb-0">Manage internal and external tools available to the AI Assistant at runtime.</p>
+                    </div>
+                    <button class="btn btn-primary btn-pill shadow-sm" onclick="openToolEditor('new')">
+                        <i class="bi bi-plus-lg me-2"></i>Add Dynamic Tool
+                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle border-0">
+                            <thead>
+                                <tr class="text-muted small text-uppercase ls-1" style="border-bottom: 2px solid var(--border-color);">
+                                    <th style="width: 50px;">Status</th>
+                                    <th>Tool Identity</th>
+                                    <th>Routing Context</th>
+                                    <th>Test Prompt</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var tools = ViewBag.CopilotTools as List<AISupportAnalysisPlatform.Models.AI.CopilotToolDefinition> ?? new();
+                                }
+                                @if (!tools.Any())
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5">
+                                            <div class="text-muted mb-2"><i class="bi bi-inbox-fill fs-1"></i></div>
+                                            <p class="mb-0">No tools registered. Use "Add Dynamic Tool" to begin.</p>
+                                        </td>
+                                    </tr>
+                                }
+                                @foreach (var tool in tools)
+                                {
+                                    <tr>
+                                        <td>
+                                            <form asp-action="ToggleCopilotTool" method="post" class="m-0">
+                                                <input type="hidden" name="id" value="@tool.Id" />
+                                                <input type="hidden" name="isEnabled" value="@(tool.IsEnabled ? "false" : "true")" />
+                                                <div class="form-check form-switch p-0 m-0 d-flex justify-content-center">
+                                                    <input class="form-check-input ms-0 cursor-pointer" type="checkbox" role="switch" @(tool.IsEnabled ? "checked" : "") onchange="this.form.submit()">
+                                                </div>
+                                            </form>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-main">@tool.Title</div>
+                                            <div class="text-muted smaller text-truncate" style="max-width: 250px;">@tool.Description</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge rounded-pill bg-light text-dark border px-2 py-1 smaller">
+                                                <i class="bi bi-hash me-1 text-primary"></i>@tool.ToolKey
+                                            </span>
+                                            <div class="mt-1 smaller text-muted opacity-75">Service: @tool.CopilotMode</div>
+                                            @if (tool.ToolType != "Internal" && !string.IsNullOrWhiteSpace(tool.EndpointUrl))
+                                            {
+                                                <div class="mt-1 smaller text-primary text-truncate" style="max-width: 150px;">
+                                                    <i class="bi bi-link-45deg"></i> @tool.EndpointUrl
+                                                </div>
+                                            }
+                                        </td>
+
+                                        <td>
+                                            <div class="smaller text-muted italic">
+                                                <i class="bi bi-chat-left-dots me-1"></i>@(string.IsNullOrWhiteSpace(tool.TestPrompt) ? "None" : tool.TestPrompt)
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group">
+                                                <button class="btn btn-outline-secondary btn-sm rounded-3 me-2" 
+                                                        onclick="openToolEditor(this)"
+                                                        data-tool-id="@tool.Id"
+                                                        data-tool-title="@tool.Title"
+                                                        data-tool-desc="@tool.Description"
+                                                        data-tool-key="@tool.ToolKey"
+                                                        data-tool-mode="@tool.CopilotMode"
+                                                        data-tool-type="@tool.ToolType"
+                                                        data-tool-url="@tool.EndpointUrl"
+                                                        data-tool-enabled="@tool.IsEnabled.ToString().ToLower()">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <form asp-action="DeleteCopilotTool" method="post" onsubmit="return confirm('Purge this tool from the registry?');" class="m-0">
+                                                    <input type="hidden" name="id" value="@tool.Id" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-3">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tool Architect Panel -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-lg sticky-top" style="top: 100px;">
+                <div class="card-header border-0 pt-4 px-4 bg-transparent">
+                    <h5 class="fw-bold mb-0 text-uppercase small ls-1 text-muted" id="tool-editor-title">Tool Architect</h5>
+                    <p class="text-muted small">Design dynamic capabilities for the AI</p>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    <form id="toolEditorForm" asp-action="SaveCopilotTool" method="post">
+                        <input type="hidden" id="tool-id" name="Id" value="0" />
+                        <input type="hidden" id="tool-enabled" name="IsEnabled" value="true" />
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase ls-1">Tool Title</label>
+                            <input type="text" class="form-control bg-transparent shadow-none" id="tool-title" name="Title" required placeholder="e.g., Weather Hub" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase ls-1">Description (Internal Prompt)</label>
+                            <textarea class="form-control bg-transparent shadow-none" id="tool-desc" name="Description" rows="3" required placeholder="Explain to the AI when to use this tool..."></textarea>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Routing Key</label>
+                                <input type="text" class="form-control bg-transparent shadow-none" id="tool-key" name="ToolKey" required placeholder="WEATHER" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Copilot Mode</label>
+                                <select class="form-select bg-transparent shadow-none font-monospace" id="tool-mode" name="CopilotMode">
+                                    <option value="ExternalUtility">ExternalUtility</option>
+                                    <option value="TicketAnalysis">TicketAnalysis</option>
+                                    <option value="KnowledgeBase">KnowledgeBase</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 d-none">
+                            <label class="form-label small fw-bold text-muted text-uppercase ls-1">Implementation Type</label>
+                            <select class="form-select bg-transparent shadow-none" id="tool-type" name="ToolType" onchange="toggleUrlField(this.value)">
+                                <option value="External">External API (Dynamic Link)</option>
+                                <option value="Internal">Internal Code (Handler-Backed)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4" id="url-field-container">
+                            <label class="form-label small fw-bold text-muted text-uppercase ls-1">Endpoint URL (Link)</label>
+                            <input type="text" class="form-control bg-transparent shadow-none" id="tool-url" name="EndpointUrl" placeholder="https://api.service.com/data?q={query}" />
+                            <div class="form-text smaller">Use <code>{query}</code> as a placeholder for LLM extraction.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase ls-1">Test Prompt / Sample Question</label>
+                            <textarea class="form-control bg-transparent shadow-none" id="tool-test-prompt" name="TestPrompt" rows="2" placeholder="e.g., What is the weather in London?"></textarea>
+                            <div class="form-text smaller">Used for verification. Left blank? We'll auto-generate one for you.</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 shadow-sm">
+                            <i class="bi bi-cpu-fill me-2"></i>Register Tool Capability
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary w-100 mt-2" onclick="openToolEditor('new')">
+                            Reset Architect
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ DATA TAB ═══════════════ -->
+<div class="tab-pane fade @(activeTab == "data" ? "show active" : "")" id="tab-data" role="tabpanel">
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-lg mb-4">
+                <div class="card-header border-0 pb-0 pt-4 px-4 bg-transparent">
+                    <h5 class="fw-bold mb-1"><i class="bi bi-stack me-2"></i>Operational Data</h5>
+                    <p class="text-muted small mb-0">Manage seeded ticket data manually from the UI. Startup no longer seeds tickets automatically.</p>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6 col-xl-4">
+                            <div class="p-3 rounded-3 border h-100">
+                                <div class="small text-muted text-uppercase fw-bold">Tickets Count</div>
+                                <div class="fs-4 fw-bold">@ViewBag.TicketCount</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-xl-4">
+                            <div class="p-3 rounded-3 border h-100">
+                                <div class="small text-muted text-uppercase fw-bold">Comments Count</div>
+                                <div class="fs-4 fw-bold">@ViewBag.TicketCommentCount</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-xl-4">
+                            <div class="p-3 rounded-3 border h-100">
+                                <div class="small text-muted text-uppercase fw-bold">Attachments Count</div>
+                                <div class="fs-4 fw-bold">@ViewBag.TicketAttachmentCount</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <form asp-action="SeedData" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-cloud-arrow-down-fill me-2"></i>Seed Data
+                            </button>
+                        </form>
+                        <form asp-action="FlushData" method="post" class="m-0" onsubmit="return confirm('This will permanently delete ticket, AI, and notification data. Continue?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-trash3-fill me-2"></i>Flush Data
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card border-0 shadow-lg overflow-hidden">
+                <div class="card-header border-0 px-4 pt-4 pb-3 bg-transparent">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                        <div>
+                            <h5 class="fw-bold mb-1"><i class="bi bi-diagram-3-fill me-2"></i>Database Setup And Migration</h5>
+                            <p class="text-muted small mb-0">Choose the SQL Server target, inspect the engine, pick the database, then save or migrate in one flow.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-xl-4">
+                            <div class="p-4 rounded-4 h-100 border" style="background: rgba(99, 102, 241, 0.04) !important;">
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <span class="badge rounded-pill text-bg-dark">1</span>
+                                    <h6 class="fw-bold mb-0">Target Server</h6>
+                                </div>
+                                <p class="text-muted small mb-3">Scan this machine for common SQL Server instances or type the server name directly.</p>
+                                <form asp-action="DiscoverSqlServers" method="post" class="mb-3">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline-primary w-100">
+                                        <i class="bi bi-pc-display-horizontal me-2"></i>Scan This PC
+                                    </button>
+                                </form>
+                                @if (sqlServerCandidates.Any())
+                                {
+                                    <div class="small text-muted text-uppercase fw-bold mb-2">Detected</div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach (var candidate in sqlServerCandidates)
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-sm"
+                                                    onclick="setDatabaseServer('@candidate.ServerName')">
+                                                @candidate.ServerName
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4">
+                            <div class="p-4 rounded-4 h-100 border">
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <span class="badge rounded-pill text-bg-dark">2</span>
+                                    <h6 class="fw-bold mb-0">Inspect Engine</h6>
+                                </div>
+                                <form asp-action="InspectSqlServer" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Server Name</label>
+                                        <input type="text"
+                                               id="db-server-name"
+                                               name="serverName"
+                                               value="@dbServerName"
+                                               class="form-control bg-transparent shadow-none"
+                                               placeholder="localhost">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Database Name</label>
+                                        <input type="text"
+                                               id="db-database-name"
+                                               value="@dbDatabaseName"
+                                               class="form-control bg-transparent shadow-none"
+                                               placeholder="AISupportAnalysisPlatform">
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-search me-2"></i>Check Engine
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4">
+                            <div class="p-4 rounded-4 h-100 border" style="background: rgba(var(--primary-color-rgb), 0.04) !important;">
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <span class="badge rounded-pill text-bg-dark">3</span>
+                                    <h6 class="fw-bold mb-0">Apply Target</h6>
+                                </div>
+                                <form asp-action="ActivateRuntimeDatabaseTarget" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-muted text-uppercase ls-1">Generated Connection</label>
+                                        <textarea id="db-connection-string" name="connectionString" rows="6" class="form-control bg-transparent shadow-none">@ViewBag.CurrentConnectionString</textarea>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="syncConnectionStringFromBuilder()">
+                                            <i class="bi bi-magic me-2"></i>Generate
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-arrow-repeat me-2"></i>Apply Runtime Target
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div> <!-- end settingsTabContent -->
+
+<style>
+    .theme-card { transition: all 0.3s ease; cursor: pointer; }
+    .theme-card:hover { transform: translateY(-3px); }
+    .active-theme { border: 2px solid var(--primary-color) !important; filter: brightness(1.1); box-shadow: 0 0 15px rgba(var(--primary-color-rgb), 0.2) !important; }
+    .theme-preview { transition: all 0.5s ease; }
+    .form-control-color { height: 45px; cursor: pointer; padding: 4px; }
+    .ls-1 { letter-spacing: 1.5px; }
+
+    /* Settings Tab Buttons */
+    .settings-tab-btn {
+        background: transparent !important;
+        color: var(--text-muted) !important;
+        border: 1px solid var(--border-color) !important;
+        font-weight: 600;
+        padding: 10px 24px;
+        border-radius: 8px !important;
+        transition: all 0.3s ease;
+    }
+    .settings-tab-btn:hover {
+        color: var(--text-main) !important;
+        border-color: var(--primary-color) !important;
+        background: rgba(99, 102, 241, 0.05) !important;
+    }
+    .settings-tab-btn.active {
+        background: var(--primary-color) !important;
+        color: #000 !important;
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 4px 15px rgba(var(--primary-color-rgb), 0.25);
+    }
+
+    /* Provider Selector Buttons */
+    .provider-selector-btn {
+        background: transparent !important;
+        color: var(--text-muted) !important;
+        border: 2px solid var(--border-color) !important;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 10px !important;
+        transition: all 0.3s ease;
+    }
+    .provider-selector-btn:hover {
+        color: var(--text-main) !important;
+        border-color: var(--primary-color) !important;
+        transform: translateY(-1px);
+    }
+    .provider-selector-btn.active {
+        background: var(--primary-color) !important;
+        color: #000 !important;
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 4px 15px rgba(var(--primary-color-rgb), 0.3);
+        transform: translateY(-1px);
+    }
+
+    .ai-config-shell { position: relative; }
+    .ai-config-hero {
+        background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 32%),
+                    linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.84));
+        border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    }
+    .ai-config-eyebrow { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: var(--primary-color) !important; }
+    .ai-config-dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), #22c55e); box-shadow: 0 0 0 6px rgba(var(--primary-color-rgb), 0.12); }
+    .ai-config-summary { display: grid; gap: 12px; }
+    .ai-summary-tile { padding: 16px 18px; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.2); background: rgba(255,255,255,0.72); backdrop-filter: blur(10px); }
+    .ai-summary-label { font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted) !important; margin-bottom: 6px; }
+    .ai-summary-value { font-size: 1rem; font-weight: 700; color: var(--text-main) !important; }
+    .ai-provider-switch { border-top: 1px solid rgba(148, 163, 184, 0.14); padding-top: 24px; }
+    .ai-config-badge { display: inline-flex; align-items: center; padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.2); background: rgba(255,255,255,0.7); color: var(--text-main) !important; font-size: 0.86rem; font-weight: 600; }
+
+    #tab-ai #providerTabContent > .tab-pane > .card {
+        border: 1px solid rgba(148, 163, 184, 0.18) !important;
+        border-top: none !important;
+        border-radius: 0 0 24px 24px !important;
+        overflow: hidden;
+        box-shadow: 0 22px 44px rgba(15, 23, 42, 0.08) !important;
+    }
+    #tab-ai #providerTabContent .card-header { padding: 1.75rem 2rem 1rem 2rem !important; background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(248, 250, 252, 0.72)) !important; border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important; }
+    #tab-ai #providerTabContent .card-body { padding: 2rem !important; }
+    #tab-ai #providerTabContent .card-footer { padding: 1.5rem 2rem 2rem 2rem !important; background: linear-gradient(180deg, rgba(248, 250, 252, 0.5), rgba(255,255,255,0.95)) !important; }
+    #tab-ai .form-label { margin-bottom: 0.45rem; }
+    #tab-ai .form-control, #tab-ai .form-select, #tab-ai textarea { min-height: 48px; border-radius: 14px !important; background: rgba(255,255,255,0.82) !important; border-color: rgba(148, 163, 184, 0.24) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+    #tab-ai textarea { min-height: auto; }
+</style>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadModels();
+        });
+
+        function openToolEditor(obj) {
+            const form = document.getElementById('toolEditorForm');
+            const titleEl = document.getElementById('tool-editor-title');
+            
+            if (obj === 'new') {
+                titleEl.innerText = 'Tool Architect';
+                form.reset();
+                document.getElementById('tool-id').value = '0';
+                document.getElementById('tool-enabled').value = 'true';
+                toggleUrlField('External');
+            } else {
+                titleEl.innerText = 'Refine Capability';
+                const btn = obj;
+                document.getElementById('tool-id').value = btn.getAttribute('data-tool-id');
+                document.getElementById('tool-title').value = btn.getAttribute('data-tool-title');
+                document.getElementById('tool-desc').value = btn.getAttribute('data-tool-desc');
+                document.getElementById('tool-key').value = btn.getAttribute('data-tool-key');
+                document.getElementById('tool-mode').value = btn.getAttribute('data-tool-mode');
+                document.getElementById('tool-type').value = btn.getAttribute('data-tool-type');
+                document.getElementById('tool-url').value = btn.getAttribute('data-tool-url');
+                document.getElementById('tool-test-prompt').value = btn.getAttribute('data-tool-test-prompt') || '';
+                document.getElementById('tool-enabled').value = btn.getAttribute('data-tool-enabled');
+                toggleUrlField(btn.getAttribute('data-tool-type'));
+            }
+        }
+
+        function toggleUrlField(type) {
+            const container = document.getElementById('url-field-container');
+            if (type === 'Internal') {
+                container?.classList.add('d-none');
+            } else {
+                container?.classList.remove('d-none');
+            }
+        }
+
+        function openArchitect(element) {
+            const title = document.getElementById('studio-title');
+            if (element === 'new') {
+                title.innerText = 'Establish New Architecture';
+                document.getElementById('theme-id').value = 0;
+                document.getElementById('theme-name').value = 'Custom Identity';
+                document.getElementById('theme-primary').value = '#10b981';
+                document.getElementById('theme-bgmain').value = '#f1f5f9';
+                document.getElementById('theme-bgcard').value = '#ffffff';
+                document.getElementById('theme-bgsidebar').value = '#ffffff';
+                document.getElementById('theme-bgheader').value = '#ffffff';
+                document.getElementById('theme-textmain').value = '#1e293b';
+                document.getElementById('theme-textmuted').value = '#64748b';
+                document.getElementById('theme-border').value = '#e2e8f0';
+                document.getElementById('theme-issystem').value = "false";
+                document.getElementById('theme-sysid').value = "";
+            } else {
+                const theme = element.dataset;
+                title.innerText = `Refine: ${theme.themeName}`;
+                document.getElementById('theme-id').value = theme.themeId;
+                document.getElementById('theme-name').value = theme.themeName;
+                document.getElementById('theme-primary').value = theme.themePrimary;
+                document.getElementById('theme-bgmain').value = theme.themeBgmain;
+                document.getElementById('theme-bgcard').value = theme.themeBgcard;
+                document.getElementById('theme-bgsidebar').value = theme.themeBgsidebar;
+                document.getElementById('theme-bgheader').value = theme.themeBgheader;
+                document.getElementById('theme-textmain').value = theme.themeTextmain;
+                document.getElementById('theme-textmuted').value = theme.themeTextmuted;
+                document.getElementById('theme-border').value = theme.themeBorder;
+                document.getElementById('theme-issystem').value = theme.themeIssystem;
+                document.getElementById('theme-sysid').value = theme.themeSysid || '';
+                document.getElementById('theme-name').focus();
+            }
+        }
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+            } else {
+                input.type = 'password';
+                btn.innerHTML = '<i class="bi bi-eye"></i>';
+            }
+        }
+
+        function validateProvider(type, btn) {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>...';
+            btn.disabled = true;
+            fetch(`/Settings/ValidateProvider?providerType=${type}`)
+                .then(r => r.json())
+                .then(data => {
+                    btn.innerHTML = data.success ? '<i class="bi bi-check-circle"></i>' : '<i class="bi bi-x-circle"></i>';
+                    setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 3000);
+                });
+        }
+
+        function loadModels() {
+            const container = document.getElementById('models-container');
+            if (!container) return;
+            fetch('/Settings/GetDockerModels').then(r => r.json()).then(data => {
+                if (!data.success) { container.innerHTML = `<p class="text-muted small">${data.error}</p>`; return; }
+                container.innerHTML = '';
+                data.models.forEach(model => {
+                    const isActive = model.name === data.activeModel;
+                    container.innerHTML += `<div class="col-md-4 mb-3"><div class="card p-3 ${isActive?'border-primary':''}"><h6>${model.name}</h6><button onclick="setDockerDefaultModel('${model.name}')" class="btn btn-sm btn-primary" ${isActive?'disabled':''}>${isActive?'Active':'Set Default'}</button></div></div>`;
+                });
+            });
+        }
+
+        function setDockerDefaultModel(modelName) {
+            fetch('/Settings/SetDockerDefaultModel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modelName })
+            }).then(r => r.json()).then(data => { if (data.success) loadModels(); });
+        }
+
+        function deleteModel(modelName) {
+            if (!confirm('Delete?')) return;
+            fetch('/Settings/DeleteDockerModel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modelName })
+            }).then(r => r.json()).then(data => { if (data.success) loadModels(); });
+        }
+
+        function pullModel() {
+            const modelName = document.getElementById('new-model-name').value;
+            fetch('/Settings/PullDockerModel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelName }) }).then(() => loadModels());
+        }
+
+        function setDatabaseServer(serverName) { document.getElementById('db-server-name').value = serverName; }
+        function syncConnectionStringFromBuilder() {
+            const server = document.getElementById('db-server-name').value;
+            const db = document.getElementById('db-database-name').value;
+            document.getElementById('db-connection-string').value = `Server=${server};Database=${db};Integrated Security=True;TrustServerCertificate=True;`;
+        }
+        function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => alert('Copied!')); }
+    </script>
+}

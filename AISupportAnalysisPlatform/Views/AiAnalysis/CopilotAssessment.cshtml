@@ -1,0 +1,195 @@
+@using System.Linq
+@using AISupportAnalysisPlatform.Models.AI
+@model CopilotAssessmentLabViewModel
+@{
+    ViewData["Title"] = "Copilot Assessment Lab";
+    var runningLabel = "Running assessment...";
+    var runLabel = Loc.Get("RunAssessment");
+    if (string.Equals(runLabel, "RunAssessment", StringComparison.Ordinal))
+    {
+        runLabel = "Run Assessment";
+    }
+}
+
+<div id="copilot-assessment-app"
+     data-run-url="@Url.Action("RunCopilotAssessment", "AiAnalysis")"
+     data-run-label="@runLabel"
+     data-running-label="@runningLabel"
+     data-pass-label="Pass"
+     data-fail-label="Fail"
+     data-pending-label="Pending"
+     data-assessment-complete-title="Assessment Complete"
+     data-assessment-error-title="Assessment Failed"
+     data-copilot-base-url="@Url.Action("Copilot", "AiAnalysis")">
+
+    <div class="ai-header-shell px-0 animate__animated animate__fadeIn d-flex flex-column flex-md-row justify-content-between align-items-md-center border-bottom" style="border-bottom-color: var(--border-color) !important;">
+        <div class="d-flex align-items-center gap-3">
+            <div class="ai-icon-box shadow-sm position-relative overflow-hidden">
+                <i class="bi bi-microscope text-primary" style="position: relative; z-index: 2;"></i>
+            </div>
+            <div>
+                <nav aria-label="breadcrumb" class="mb-0">
+                    <ol class="breadcrumb mb-0 p-0 bg-transparent" style="font-size: 0.7rem; letter-spacing: 0.03em; font-weight: 700; text-transform: uppercase;">
+                        <li class="breadcrumb-item"><a asp-controller="AiAnalysis" asp-action="Hub" class="text-muted text-decoration-none hover-primary">@Loc.Get("AnalysisHub")</a></li>
+                        <li class="breadcrumb-item active text-primary" aria-current="page">@Loc.Get("Assessment")</li>
+                    </ol>
+                </nav>
+                <p class="mb-0 text-main fw-bold" style="font-size: 0.95rem; line-height: 1.2;">Copilot Assessment Lab</p>
+                <div class="small text-muted mt-1">Shared sample catalog for the lab and the Admin Copilot prompt library.</div>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <button id="btnRunAll" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-bold" type="button" title="@runLabel">
+                <i class="bi bi-play-fill @(Loc.IsRtl ? "ms-1" : "me-1")"></i><span>@runLabel</span>
+            </button>
+            <a class="btn btn-soft-primary btn-sm rounded-pill px-3 fw-bold" asp-controller="AiAnalysis" asp-action="Copilot" title="Open Copilot">
+                <i class="bi bi-chat-left-text @(Loc.IsRtl ? "ms-1" : "me-1")"></i>Open Copilot
+            </a>
+            <a class="btn btn-soft-secondary btn-sm rounded-pill px-4 fw-bold" asp-controller="AiAnalysis" asp-action="Hub" title="@Loc.Get("Hub")">
+                <i class="bi bi-grid @(Loc.IsRtl ? "ms-1" : "me-1")"></i>@Loc.Get("Hub")
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-1 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100" style="background: var(--bg-card); border-radius: 1rem;">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-bold small mb-2" style="letter-spacing: 0.08em;">Catalog Cases</div>
+                    <div class="fs-3 fw-bold text-main">@Model.TotalCases</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100" style="background: var(--bg-card); border-radius: 1rem;">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-bold small mb-2" style="letter-spacing: 0.08em;">Prompt Groups</div>
+                    <div class="fs-3 fw-bold text-main">@Model.CopilotSampleGroups.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100" style="background: var(--bg-card); border-radius: 1rem;">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-bold small mb-2" style="letter-spacing: 0.08em;">Success Rate</div>
+                    <div id="statSuccessRate" class="fs-3 fw-bold text-success">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100" style="background: var(--bg-card); border-radius: 1rem;">
+                <div class="card-body">
+                    <div class="text-muted text-uppercase fw-bold small mb-2" style="letter-spacing: 0.08em;">Average Latency</div>
+                    <div id="statLatency" class="fs-3 fw-bold" style="color: var(--primary-color);">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4" style="background: var(--bg-card);">
+        <div class="card-body p-4">
+            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div>
+                    <div class="small text-muted text-uppercase fw-bold mb-2" style="letter-spacing: 0.08em;">Assessment Scope</div>
+                    <p class="mb-0 text-main">These cases feed the assessment lab and the Admin Copilot sample library. Run the suite here, or open any sample directly in Copilot to inspect the full reasoning path.</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var group in Model.CopilotSampleGroups)
+                    {
+                        <span class="badge rounded-pill px-3 py-2" style="background: rgba(var(--primary-color-rgb), 0.12); color: var(--primary-color); border: 1px solid rgba(var(--primary-color-rgb), 0.18);">
+                            @group.Title (@group.Prompts.Count)
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4" style="background: var(--bg-card);">
+        <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div>
+                    <h5 class="mb-1 fw-bold text-main">Scenario Catalog</h5>
+                    <div class="small text-muted">Every row below can be run in the suite and opened directly in Copilot.</div>
+                </div>
+                <div id="assessmentSummary" class="small text-muted align-self-lg-center">
+                    Ready to run @Model.TotalCases scenarios.
+                </div>
+            </div>
+        </div>
+        <div class="table-responsive p-4 pt-3">
+            <table class="table table-hover align-middle mb-0" style="color: var(--text-main);">
+                <thead style="background: var(--bg-main);">
+                    <tr>
+                        <th class="ps-3">Scenario</th>
+                        <th>Expected</th>
+                        <th>Run Detail</th>
+                        <th>Actual Route</th>
+                        <th class="text-center">Status</th>
+                        <th>Latency</th>
+                        <th class="text-end pe-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="testResultsBody">
+                    @foreach (var group in Model.CaseGroups)
+                    {
+                        <tr class="table-light">
+                            <td colspan="7" class="px-3 py-3">
+                                <div class="d-flex flex-column flex-lg-row justify-content-between gap-2">
+                                    <div>
+                                        <div class="fw-bold text-main">@group.Category</div>
+                                        <div class="small text-muted">@group.Description</div>
+                                    </div>
+                                    <div class="small text-muted align-self-lg-center">@group.Cases.Count scenario@(group.Cases.Count == 1 ? string.Empty : "s")</div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        @foreach (var testCase in group.Cases)
+                        {
+                            <tr id="row-@testCase.Id" data-case-id="@testCase.Id">
+                                <td class="ps-3">
+                                    <div class="fw-semibold text-main">@testCase.Question</div>
+                                    <div class="small text-muted mt-1">
+                                        @if (testCase.SeedHistory.Any())
+                                        {
+                                            <span class="badge rounded-pill me-1" style="background: rgba(var(--primary-color-rgb), 0.12); color: var(--primary-color);">Uses seeded history</span>
+                                        }
+                                        @if (testCase.IncludeInCopilotLibrary)
+                                        {
+                                            <span class="badge bg-soft-secondary text-secondary rounded-pill">In Copilot library</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="small text-muted expected-behavior">@testCase.ExpectedBehaviorSummary</td>
+                                <td class="small text-muted result-detail">Pending run.</td>
+                                <td class="small text-muted actual-route">---</td>
+                                <td class="text-center status-col">
+                                    <span class="badge bg-soft-secondary text-secondary rounded-pill">@Loc.Get("Pending")</span>
+                                </td>
+                                <td class="latency-col text-muted">---</td>
+                                <td class="text-end pe-3">
+                                    <a class="btn btn-soft-primary btn-sm rounded-pill px-3 fw-bold"
+                                       asp-controller="AiAnalysis"
+                                       asp-action="Copilot"
+                                       asp-route-prompt="@testCase.Question">
+                                        <i class="bi bi-box-arrow-up-right @(Loc.IsRtl ? "ms-1" : "me-1")"></i>Open in Copilot
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/ai-evaluation.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/copilot-assessment.js" asp-append-version="true"></script>
+}

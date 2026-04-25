@@ -1,0 +1,97 @@
+@model AISupportAnalysisPlatform.Models.Common.PagedResult<AISupportAnalysisPlatform.Models.Entity>
+
+@{
+    ViewData["Title"] = "Entities Management";
+    var request = Model.Request;
+    var entitiesTable = new AISupportAnalysisPlatform.Models.Common.FeatureTableShellViewModel
+    {
+        Title = "Entity Registry",
+        Subtitle = "Shared operational table for active organizations and controls.",
+        ShowColumnSearchToggle = true,
+        ColumnSearchLabel = "In-Depth Column Filters",
+        TableSelector = "#entitiesTable",
+        TablePartialName = "~/Views/Entities/_EntitiesTable.cshtml",
+        TableModel = Model,
+        PaginationModel = Model
+    };
+}
+
+<style>
+    .sort-header {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        text-decoration: none !important;
+        color: var(--text-muted) !important;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        transition: all 0.18s ease;
+        cursor: pointer;
+        border: 1px solid transparent;
+    }
+    .sort-header:hover {
+        background: rgba(var(--primary-color-rgb, 16,185,129), 0.1) !important;
+        color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+    }
+    .sort-header.sort-active {
+        color: var(--primary-color) !important;
+        background: rgba(var(--primary-color-rgb, 16,185,129), 0.08) !important;
+        border-color: rgba(var(--primary-color-rgb, 16,185,129), 0.25) !important;
+    }
+    .sort-icon {
+        font-size: 0.8rem;
+        opacity: 0.75;
+    }
+    .sort-header.sort-active .sort-icon {
+        opacity: 1;
+        color: var(--primary-color) !important;
+    }
+</style>
+
+<div class="row mb-5 animate__animated animate__fadeIn">
+    <div class="col-lg-8">
+        <h2 class="fw-bold mb-1" style="color: var(--text-main) !important;">Entities Registry</h2>
+        <p class="text-muted small mb-0" style="color: var(--text-muted) !important;">Manage operational agencies and client hierarchies.</p>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+        <a asp-action="Create" class="btn btn-primary btn-pill shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> New Entity
+        </a>
+    </div>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger bg-danger-subtle text-danger border-0 d-flex align-items-center mb-4 rounded-3">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+        <div>
+            <strong>Deletion Prevented:</strong> @TempData["Error"]
+        </div>
+    </div>
+}
+
+<div class="card border-0 shadow-sm mb-4" style="background: var(--bg-card) !important; border: 1px solid var(--border-color) !important;">
+    <div class="card-body p-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-lg-10">
+                <label class="form-label small fw-bold text-muted text-uppercase ls-1">Identify Entity</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color) !important;"><i class="bi bi-search text-primary"></i></span>
+                    <input type="text" name="request.SearchString" class="form-control border-start-0 bg-transparent shadow-none" style="border-color: var(--border-color) !important; color: var(--text-main) !important;" placeholder="Search entity name..." value="@request.SearchString">
+                </div>
+            </div>
+            <div class="col-lg-2">
+                <button type="submit" class="btn btn-primary w-100 shadow-sm">
+                    <i class="bi bi-filter"></i> Apply
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<partial name="~/Views/Shared/Components/Tables/_FeatureTableShell.cshtml" model="entitiesTable" />
